@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /files
+Sitemap: http://shop.cnord.ru/sitemap.xml
+Host: shop.cnord.ru

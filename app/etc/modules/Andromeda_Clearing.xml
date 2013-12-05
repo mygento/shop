@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config>
+	<modules>
+		<Andromeda_Clearing>
+			<active>true</active>
+			<codePool>local</codePool>
+			<depends>
+				<Mage_Payment />
+			</depends>
+		</Andromeda_Clearing>
+	</modules>
+</config>

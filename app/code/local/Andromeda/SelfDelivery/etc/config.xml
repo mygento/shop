@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<config>
+     <default>  
+         <carriers>  
+             <!-- Use group alias -->  
+             <selfdelivery>  
+                 <active>1</active>  
+                 <!-- Use method name -->  
+                 <allowed_methods>spb,moscow</allowed_methods>  
+                 <!-- Use method name -->  
+                 <methods>spb</methods>  
+                 <sallowspecific>0</sallowspecific>  
+                 <model>Andromeda_SelfDelivery_Model_Carrier_ShippingMethod</model>  
+                 <name>Store Pickup</name>  
+                 <title>Store Pickup</title>  
+                 <specificerrmsg>  
+                     This shipping method is currently unavailable.  
+                     If you would like to ship using this shipping  
+                    method, please contact us.  
+                 </specificerrmsg>  
+                <handling_type>F</handling_type>  
+             </selfdelivery>  
+         </carriers>  
+     </default>  
+	<modules>
+		<Andromeda_SelfDelivery>
+			<version>0.0.1</version>
+		</Andromeda_SelfDelivery>
+	</modules>
+    <global>
+        <models>
+            <SelfDelivery>
+                <class>Andromeda_SelfDelivery_Model</class>
+            </SelfDelivery>
+        </models>
+ 
+        <resources>
+            <SelfDelivery_setup>
+                <setup>
+                    <module>Andromeda_SelfDelivery</module>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </SelfDelivery_setup>
+        </resources>
+    </global>
+</config>

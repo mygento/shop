@@ -1,0 +1,308 @@
+<?// ITEAMO . ALL PRODUCTS PAGE <<< ============================== ?>
+<?// ============================================================= ?>
+<?
+  $_productCollection = $this->getProductCollection();
+  $arProductsByCategory = $this->getProductsByCategory($_productCollection);  
+?>
+<?// ============================================================= ?>
+<style>
+/* COMMON <<< */
+a, input {
+  cursor:pointer;
+}
+.block {
+  margin-bottom:10px;
+}
+/* >>> COMMON */
+/* MAIN <<< */
+.category-products {
+  display:block;
+  width:70%;
+  margin:0px;
+  padding:0px;
+  margin-bottom:20px;
+  margin-left:30px;  
+}
+.products-list {
+  width:400px;
+  display:block;
+  margin:0px;
+  padding:0px;
+}
+input.addToCart {
+  display:block;
+  border:0px;
+  padding:0px;
+  margin:0px;  
+}
+.notes {
+  font-weight:bold;
+  color:green;
+}
+input.addToCart.grey {
+  background:transparent url(http://<?=$_SERVER['SERVER_NAME']?>/app/design/frontend/default/andromeda/template/catalog/product/iteamoAllProductsPage/buttonAddToBasketGrey.gif) no-repeat left;
+  width: 276px;
+  height: 32px;
+}
+input.addToCart.orange {
+  background:transparent url(http://<?=$_SERVER['SERVER_NAME']?>/app/design/frontend/default/andromeda/template/catalog/product/iteamoAllProductsPage/buttonAddToBasketOrange.gif) no-repeat left;
+  width: 276px;
+  height: 32px;
+}
+/* >>> MAIN */
+/* ITEM <<< */
+.products-list li.product.item {
+  display:block;
+  border-bottom:1px solid #cccccc;  
+  padding:10px 0px;
+  margin:0px;
+  line-height:20px;  
+}
+.products-list li.product.item .product-shop {
+  float:none;
+}
+.products-list li.product.item .product-name a {
+  font-size:12px;
+  font-family:arial;
+  color:#0099cc;
+}
+.products-list li.product.item .price-box {
+  display:inline-block;
+  float:left;
+  padding:0px;
+}
+.products-list li.product.item .priceAndStock {
+  float:right;
+  margin-left:10px;
+}
+.products-list li.product.item .price-box .price {
+  font-family: arial;
+  font-size:12px;  
+  color: #990000;
+}
+.products-list li.product.item .stock {
+  display:block;
+  float:right;
+  padding:0px;
+  margin:0px;
+  margin-left:15px;
+  margin-top:-1px !important;  
+}
+/* QUANTITY CHOOSE BLOCK <<< */
+.products-list li.product.item .stock .quantityChoose {    
+  color:black;
+  height:23px;  
+  display:block;    
+}
+.products-list li.product.item .stock .quantityChoose * {
+  display:inline-block;
+  position:relative;  
+}
+.products-list li.product.item .stock .quantityChoose input {
+  border:0px;
+  border-top: 1px solid #cccccc;
+  border-bottom: 1px solid #cccccc;
+  width:30px;
+  height:21px;
+  text-align:center;
+}
+.products-list li.product.item .stock .quantityChoose .plus {  
+  width:21px;  
+  height:23px;
+  background:transparent url(http://<?=$_SERVER['SERVER_NAME']?>/app/design/frontend/default/andromeda/template/catalog/product/iteamoAllProductsPage/buttonPlus.gif) no-repeat left;
+  text-decoration:none;
+}
+body:nth-of-type(1) .quantityChoose .plus {
+  border-bottom:-1px;
+}
+.products-list li.product.item .stock .quantityChoose .minus {
+  width:22px;
+  height:23px;
+  background:transparent url(http://<?=$_SERVER['SERVER_NAME']?>/app/design/frontend/default/andromeda/template/catalog/product/iteamoAllProductsPage/buttonMinus.gif) no-repeat right;
+  text-decoration:none;
+}
+/* >>> QUANTITY CHOOSE BLOCK */
+/* >>> ITEM */
+/* ADDITIONAL <<< */
+.iteamo .description {
+  line-height: 30px;
+  font-family:arial;
+  font-size:14px;
+}
+.iteamo h3 {
+  font-size:14px;
+  font-weight:bold;
+}
+/* >>> ADDITIONAL */
+</style>
+<?// ============================================================= ?>
+<div class="indent-col-main specials iteamo">
+<div class="page-title category-title">
+  <h1>Быстрый заказ</h1>
+</div>
+<?if($_productCollection->count()) {?>
+<form method="POST" action="<?=$_SERVER['REQUEST_URI']?>&addToCart=1">
+<div class="notes block">
+  <?if (isset($_REQUEST['addToCart'])){?>
+    <div class="item">Товары добавлены в корзину.</div>
+  <?}?>
+  <?if (isset($_REQUEST['fromAddToCart'])){?>
+    <div class="item">Товары добавлены в корзину. Перенаправление...</div>
+    <meta http-equiv="refresh" content="2;<?=str_replace('fromAddToCart=1', '', $_SERVER['REQUEST_URI'])?>">
+  <?}?>
+</div>
+<div class="block" style="line-height:30px;">
+  <div class="description">Выберите товары для единовременного добавления в корзину</div>
+  <input class="addToCart grey" type="submit" value="" tabindex="99999999">
+</div>
+<?foreach($arProductsByCategory as $categoryNameRoot => $arProductsByRoot){?>
+<h2 id="<?=$categoryNameRoot?>"><?=$categoryNameRoot?></h2>
+<?foreach($arProductsByRoot as $categoryName => $arProducts){?>
+<div class="category-products block" id="<?=$categoryName?>">        
+    <?if($this->getMode()!='grid'): ?>
+    <?$_iterator = 1; ?>
+    <h3><?=$categoryName?></h3>    
+    <ol class="products-list" id="products-list">
+      <?foreach ($arProducts as $_product){?>
+          <li class="product item">
+              <?// IMAGE <<< ?>
+              <?/*?>
+                <a class="product-image" href="<?=$_product->getProductUrl()?>" 
+                  title="<?=$this->htmlEscape($this->getImageLabel($_product, 'small_image')) ?>">
+                    <img src="<?=$this->helper('catalog/image')->init($_product, 'small_image')->resize(211, 211); ?>" 
+                      width="211" height="211" alt="<?=$this->htmlEscape($this->getImageLabel($_product, 'small_image')) ?>" 
+                      title="<?=$this->htmlEscape($this->getImageLabel($_product, 'small_image')) ?>" />
+                </a>
+              <?// */?>
+              <?// >>> IMAGE ?>
+              <?// DESCRIPTION <<< ?>
+              <div class="product-shop">              
+                  <?// NAME <<< ?>
+                    <span class="product-name">
+                      <a href="<?php echo $_product->getProductUrl() ?>" tabindex="99999999" 
+                        title="<?php echo $this->htmlEscape($_product->getName()) ?>"><?php echo $this->htmlEscape($_product->getName())?></a>
+                    </span>
+                  <?// >>> NAME ?>
+                  <?// RATING <<< ?>
+                  <?/*?>
+                    <?if($_product->getRatingSummary()): ?>
+                      <?=$this->getReviewsSummaryHtml($_product)?>
+                    <?endif;?>
+                  <?// */?>
+                  <?// >>> RATING ?>
+                  <div class="priceAndStock">
+                    <?// PRICE <<< ?>
+                      <?if ((($_product->getPrice() * 100) % 100) > 0) {?>
+                        <div class="price-box"><span class="regular-price" id="product-price-191">
+                          <span class="price"><?=number_format($_product->getFinalPrice(), 2)?> руб.</span></span>
+                        </div>                                                
+                      <?} else {?>
+                        <?=$this->getPriceHtml($_product, true)?>
+                      <?}?>                            
+                      <input type="hidden" class="iteamoPrice" name="iteamoPrice" value="<?=$_product->price?>">
+                    <?// >>> PRICE ?>
+                    <?// STOCK AND ADD TO CART <<< ?>
+                      <div class="stock">
+                        <?if($_product->isSaleable()):?>
+                          <div class="quantityChoose">
+                            <a class="minus" href="#" tabindex="99999999">&nbsp;</a><input type="text" 
+                              name="arToBasket[<?=$_product->entity_id?>]" value="0" size="2" 
+                              tabindex="<?=$_iterator?>"><a class="plus" href="#" tabindex="99999999">&nbsp;</a>
+                          </div>                     
+                        <?else:?>
+                          <span class="out-of-stock">Товара нет на складе</span>
+                        <?endif;?>
+                      </div>
+                    <?// >>> STOCK AND ADD TO CART ?>
+                  </div>                  
+                  <?// MORE LINK <<< ?>
+                  <?/*?>
+                    <div class="desc std">
+    					        <?//echo nl2br($_product->getShortDescription()) ?>
+                      <a href="<?=$_product->getProductUrl() ?>" tabindex="99999999" 
+                        title="<?=$this->htmlEscape($_product->getName())?>"><?=$this->__('Learn More') ?></a>
+                    </div>
+                  <?// */?>
+                  <?// >>> MORE LINK ?>
+                  <?// LINKS <<< ?>
+                    <?/*?>
+                    <div class="block-add-to-links"><ul class="add-to-links">
+                        <?php if ($this->helper('wishlist')->isAllow()) : ?>
+                            <li><a class="wishlist-link" href="<?php echo $this->helper('wishlist')->getAddUrl($_product) ?>"><?php echo $this->__('Add to Wishlist') ?></a></li>
+                        <?php endif; ?>
+                    </ul></div>
+                    <?// */?>
+                  <?// >>> LINKS ?>
+              </div>
+              <?// >>> DESCRIPTION ?>
+              <?// TEST <<< ?>
+                <?
+                  // echo '$_product'; echo '<hr>'; print_r($_product); echo '<hr>';
+                ?>
+              <?// >>> TEST ?>              
+              <div class="clear-block"></div>
+          </li>
+          <?$_iterator++;?>
+      <?}?>
+    </ol>
+    <?endif;?>
+</div>
+<?}?>
+<?}?>
+<div class="block" style="line-height:20px;">
+  <div class="description">Всего: 
+    выбрано <span class="totalCount">0</span> 
+    на сумму <span class="totalAmount">0</span> руб.
+  </div>
+  <input class="addToCart grey" type="submit" value="" tabindex="99999999">
+</div>
+</form>
+<?}?>
+</div>
+<?// SCRIPTS <<< ?>
+<script>
+jQuery(document).ready(function(){
+  totalCount = 0;
+  totalAmount = 0;
+  function setCountAndAmount(count, amount) 
+  {
+    jQuery('.totalCount').text(count);
+    jQuery('.totalAmount').text(amount);  
+  }
+  jQuery(".quantityChoose .plus").click(function(){    
+    objInput = jQuery(this).parent(".quantityChoose").find("input");        
+    value = parseInt(objInput.attr('value')) + 1;
+    objInput.attr('value', value);
+    jQuery('.addToCart').removeClass('grey').addClass('orange');
+    // jQuery(this).preventDefault();
+    totalCount++;
+    price = jQuery(this).parents('.product.item').find('.iteamoPrice').attr('value');
+    price = parseFloat(price);    
+    totalAmount = totalAmount + price;
+    totalAmount.toPrecision(2);
+    setCountAndAmount(totalCount, totalAmount);
+    return false;    
+  });
+  jQuery(".quantityChoose .minus").click(function(){    
+    objInput = jQuery(this).parent(".quantityChoose").find("input");        
+    value = parseInt(objInput.attr('value')) - 1;
+    if (value >= 0)
+      objInput.attr('value', value);
+    // jQuery(this).preventDefault();
+    totalCount--;
+    if (totalCount <= 0) totalCount = 0;
+    price = jQuery(this).parents('.product.item').find('.iteamoPrice').attr('value');
+    price = parseFloat(price);        
+    totalAmount = totalAmount - price;
+    if (totalAmount <= 0) totalAmount = 0;
+    totalAmount.toPrecision(2);
+    setCountAndAmount(totalCount, totalAmount);
+    return false;    
+  });  
+})
+</script>
+<?/*?>
+    <script type="text/javascript">decorateList('products-list', 'none-recursive')</script>
+<?// */?>
+<?// >>> SCRIPTS ?>
+<?// >>> ITEAMO . ALL PRODUCTS PAGE =============================== ?>

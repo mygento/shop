@@ -1,0 +1,32 @@
+Input/Output,Input/Output
+Zip,Zip
+Separate,Separate
+Message,Message
+Notice,Notice
+Error,Error
+Profile Name,Profile Name
+Select One,Select One
+Enable Cronjob,Enable Cronjob
+Run as User,Run as User
+Cron Expression,Cron Expression
+Message Type,Message Type
+Log Action,Log Action
+Logged At,Logged At
+Output,Output
+Profile Log,Profile Log
+No profile specified for logging.,No profile specified for logging.
+No action code specified for logging.,No action code specified for logging.
+Could not find file matching pattern: %s,Could not find file matching pattern: %s
+Identified file: %s,Identified file: %s
+Loaded successfully: %s,Loaded successfully: %s
+No Output File Pattern Specified,No Output File Pattern Specified
+Previous process was unsuccessful.,Previous process was unsuccessful.
+File does not exist.,File does not exist.
+Beginning File Split (%s),Beginning File Split (%s)
+Split file into %s files.,Split file into %s files.
+Average file size: %s,Average file size: %s
+Cron Profiles Settings,Cron Profiles Settings
+Active,Active
+Profile Log Timeout,Profile Log Timeout
+Delete log entries after x days,Delete log entries after x days
+Turn off all profiles running on a cronjob,Turn off all profiles running on a cronjob

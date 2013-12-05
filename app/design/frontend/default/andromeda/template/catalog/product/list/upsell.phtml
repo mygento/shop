@@ -1,0 +1,71 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category   design_default
+ * @package    Mage
+ * @copyright  Copyright (c) 2008 Irubin Consulting Inc. DBA Varien (http://www.varien.com)
+ * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php if(count($this->getItemCollection()->getItems())): ?>
+<div class="collateral-box up-sell">
+    <div class="head"><h4><?php echo $this->__('You may also be interested in the following product(s)') ?></h4></div>
+	    <table cellspacing="0" class="recently-list" id="upsell-product-table">
+    <?php // $this->setColumnCount(4); // uncomment this line if you want to have another number of columns. also can be changed in layout ?>
+    <?php $this->resetItemsIterator() ?>
+    <?php for($_i=0;$_i<$this->getRowCount();$_i++): ?>
+        <tr>
+        <?php for($_j=0;$_j<$this->getColumnCount();$_j++): ?>
+            <?php if($_link=$this->getIterableItem()): ?>
+            <td>
+			<?php $_categories = $_link->getCategoryIds();
+				  $_category = Mage::getModel('catalog/category')->load($_categories[0]);
+				  $url = substr($this->getUrl($_category->getUrlPath()),0,-6).'/'.basename($_link->getProductUrl()); ?>
+                <p class="product-image"><a href="<?php echo $url ?>"><img src="<?php echo $this->helper('catalog/image')->init($_link, 'small_image')->resize(150) ?>" width="150" height="150" alt="<?php echo $this->htmlEscape($_link->getName()) ?>" /></a></p>
+               <div class="product-details">
+			   <h5><a href="<?php echo $url ?>"><?php echo $this->htmlEscape($_link->getName()) ?></a></h5>
+			    <?php if ($this->htmlEscape($_link->getMetka())==11): ?>
+				<div class="attribute_hit"></div>
+				<?php elseif ($this->htmlEscape($_link->getMetka())==12): ?>
+				<div class="attribute_sale"></div>
+				<?php elseif ($this->htmlEscape($_link->getMetka())==13): ?>
+				<div class="attribute_new"></div>
+				<?php endif; ?>
+				<br class="clear" />
+				<?php if ($_link->getShortDescription()):?>
+				<div class="short-description"><?php echo $_link->getShortDescription() ?></div>
+				<?php endif;?>
+                <?php echo $this->getPriceHtml($_link, true) ?>
+                <?php echo $this->getReviewsSummaryHtml($_link) ?>
+				<?php if(!$_link->isSaleable()): ?>
+                <div class="out-of-stock"><?php echo $this->__('Out of stock') ?></div>
+                <?php endif; ?>
+                </div>
+            </td>
+            <?php else: ?>
+            <td class="empty-product">&nbsp;</td>
+            <?php endif; ?>
+        <?php endfor; ?>
+        </tr>
+    <?php endfor; ?>
+    </table>
+    <script type="text/javascript">decorateTable('upsell-product-table')</script>
+</div>
+<?php endif ?>

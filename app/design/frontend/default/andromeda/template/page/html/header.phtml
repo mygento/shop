@@ -1,0 +1,254 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category   design_default
+ * @package    Mage
+ * @copyright  Copyright (c) 2008 Irubin Consulting Inc. DBA Varien (http://www.varien.com)
+ * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+
+<div class="header-top-container">
+    <div class="header-top">
+        <h1 id="logo"><a href="<?php echo $this->getUrl('') ?>"><img src="<?php echo $this->getLogoSrc() ?>" alt="<?php echo $this->getLogoAlt() ?>" style="margin-left:-4px;"/></a></h1>
+		<?php echo $this->getChildHtml('store_switcher') ?>
+        <?php echo $this->getChildHtml('store_language') ?>
+		<?php echo $this->getChildHtml('topSearch') ?>
+
+             <div class="shop-access">
+                <?php /* echo $this->getChildHtml('topLinks') */ ?>
+				<?php echo $this->getChildHtml('cart_sidebar') ?>
+				
+				<?php if ($this->helper('customer')->isLoggedIn()): ?>
+				<div class="link_help"><span class="cursor" onclick="Effect.toggle('help_box', 'appear',{duration:0.5});
+				$('mini-cart').fade();close_divlogin();close_divcreate();close_divforgot();
+				return false;"><?php echo $this->__('Help') ?></span></div>
+
+				<div class="link_login icon_user">
+<!--				<a id="icon_user" title="<?php echo $this->__('Dashboard') ?>" href="<?php echo $this->getUrl('customer/account/') ?>"><?php echo $this->getWelcome() ?></a> 
+-->				<a id="icon_user" href="<?php echo $this->getUrl('customer/account/') ?>"><?php echo $this->getWelcome() ?></a> 
+				<a title="<?php echo $this->__('Log Out') ?>" href="<?php echo $this->getUrl('customer/account/logout/') ?>" onclick=""><?php echo $this->__('Log Out') ?></a></div>	
+
+				<?php else: ?>
+				
+				
+<!--				<div class="link_help"><span class="cursor" onclick="Effect.toggle('help_box', 'appear',{duration:0.5});
+				$('select-store').fade();$('mini-cart').fade();close_divlogin();close_divcreate();close_divforgot();
+				return false;"><?php echo $this->__('Help') ?></span></div>
+-->
+
+				<div class="link_help"><span class="cursor" onclick="Effect.toggle('help_box', 'appear',{duration:0.5});
+				$('mini-cart').fade();close_divlogin();close_divcreate();close_divforgot();
+				return false;"><?php echo $this->__('Help') ?></span></div>
+				
+				
+				
+<!--				<div class="link_login"><a title="<?php echo $this->__('Log in') ?>" href="#" onclick="$('select-store').fade();$('mini-cart').fade();$('help_box').fade();close_divcreate();close_divforgot();affichage_divlogin();  return false;"><?php echo $this->__('Log in') ?></a></div>
+-->
+
+				<div class="link_login"><a title="<?php echo $this->__('Log in') ?>" href="#" onclick="$('mini-cart').fade();$('help_box').fade();close_divcreate();close_divforgot();affichage_divlogin();  return false;"><?php echo $this->__('Log in') ?></a></div>				
+				<?php endif ?>
+
+				
+				
+<div style="z-index: 10000;">
+
+<ajaxlogin allow_ajaxlogin="1" vitesse_effect="1.0" allow_effect="1" base_url="<?php echo $this->getUrl('') ?>" id="ajax_login_base_url">
+
+<div class="ajaxlogin-messagebox" id="divajaxmessage" style="display: none; opacity: 0;">
+
+</div>
+
+
+
+<div class="ajaxlogin-loadbox" id="divajaxload" style="display: none; opacity: 0;">
+<h4><?php echo $this->__('Loading...') ?></h4><h4><img title="<?php echo $this->__('Loading...') ?>" src="<?php echo $this->getSkinUrl('images/ajaxlogin/load.gif') ?>" /></h4></div>
+
+
+<div class="ajaxlogin-loginbox popup_tl" id="divajaxlogin" style="display: none;">
+		<div class="popup_tr">
+		<div class="popup_fl">
+		<div class="popup_fr">
+	<div title="<?php echo $this->__('Quit') ?>" style="float: right;" class="popup_close" onclick="affichage_divlogin();"></div>	<h3><?php echo $this->__('Log In box') ?></h3>
+
+	<div class="ajaxlogin-loginbox-erreur" id="divajaxloginerreur" style="display: none;">
+		<?php echo $this->__('Invalid login or password.') ?></div>
+	<form id="login-form">
+		<ul class="form-list">
+        	<li>
+            	<label for="email"><?php echo $this->__('Email Address') ?></label>
+                <input type="text" class="input-text required-entry" onKeyDown="enter_active(event)" id="ajaxemail" title="<?php echo $this->__('Email Address') ?>" value="" name="login[username]" />
+        	</li>
+            <li>
+
+                <label for="pass"><?php echo $this->__('Password') ?></label>
+                <input type="password" id="ajaxpass" onKeyDown="enter_active(event)" class="input-text required-entry validate-password" name="login[password]" />
+            </li>
+        </ul>
+
+		<div class="form-button-green"><button type="button" onclick="ajaxlogin();"></button><?php echo $this->__('Login') ?><span></span></div>
+		<?// ITEAMO . LOGIN FORM CORRECTION <<< ?>
+      <div class="cursor create_account button_login" onclick="close_divlogin();affichage_divcreate();"><span><?php echo $this->__('Register') ?></span></div>		
+		  <div class="info_text"><?/*?><?=$this->__('Info text') ?><?// */?></div>
+		<?// >>> ITEAMO . LOGIN FORM CORRECTION ?>
+		<div class="cursor forgot_pass button_forgot" onclick="close_divlogin();affichage_divforgot();"><span><?php echo $this->__('Forgot Your Password?') ?></span></div>
+
+	</form>
+	</div>
+	</div>
+	</div>
+</div>
+
+
+
+<div class="ajaxlogin-createbox popup_tl" id="divajaxcreate" style="display: none;">
+		<div class="popup_tr">
+		<div class="popup_fl">
+		<div class="popup_fr">
+	<div title="Quit" style="float: right;" class="popup_close" onclick="affichage_divcreate();"></div>	<h3><?php echo $this->__('Create an Account 2') ?></h3>
+
+	<div class="ajaxlogin-createbox-erreur" id="divajaxcreateerreur" style="display: none;">
+
+	</div>
+
+	<form id="form-validate" method="post" action="<?php echo $this->getUrl('customer/account/createpost/') ?>">
+    	<input type="hidden" value="" name="success_url" />
+    	<input type="hidden" value="" name="error_url" />
+    	
+    	<fieldset class="ajaxlogin-fieldset">
+
+        <ul>
+            <li>
+                <div class="customer-name">
+    				<div id="id_div_ajaxfirstname" class="input-box name-firstname">
+        				<label for="firstname"><?php echo $this->__('First Name') ?></label>
+        				<input onKeyDown="enter_create(event)" type="text" class="required-entry input-text" title="<?php echo $this->__('First Name') ?>" value="" name="firstname" id="ajaxfirstname" />
+    				</div>
+
+
+    				<div id="id_div_ajaxlastname" class="input-box name-lastname">
+        				<label for="lastname"><?php echo $this->__('Last Name') ?></label>
+        				<input onKeyDown="enter_create(event)" type="text" class="required-entry input-text" title="<?php echo $this->__('Last Name') ?>" value="" name="lastname" id="ajaxlastname" />
+    				</div>
+				</div>            
+			</li>
+			
+            <li>
+                <div id="id_div_ajaxemail_address" class="input-box">
+                    <label for="email_address"><?php echo $this->__('Email Address') ?></label>
+                    <input onKeyDown="enter_create(event)" type="text" class="validate-email required-entry input-text" title="<?php echo $this->__('Email Address') ?>" value="" id="ajaxemail_address" name="email" />
+                </div>
+            </li>
+            
+		</ul>
+		</fieldset>
+		
+    	
+    	<fieldset class="ajaxlogin-fieldset">
+
+        <ul>
+            <li>
+                <div id="id_div_ajaxpassword" class="input-box">
+                    <label for="password"><?php echo $this->__('Password') ?></label>
+                    <input onKeyDown="enter_create(event)" type="password" class="required-entry validate-password input-text" title="<?php echo $this->__('Password') ?>" id="ajaxpassword" name="password" />
+                </div>
+                <div id="id_div_ajaxconfirmation" class="input-box">
+                    <label for="confirmation"><?php echo $this->__('Confirm Password') ?></label>
+                    <input onKeyDown="enter_create(event)" type="password" class="required-entry validate-cpassword input-text" id="ajaxconfirmation" title="<?php echo $this->__('Confirm Password') ?>" name="confirmation" />
+                </div>
+            </li>
+			<li>
+                <input type="checkbox" id="ajaxis_subscribed" value="1" title="<?php echo $this->__('Sign Up for Newsletter') ?>" name="is_subscribed" />
+                <label class="none_all" for="is_subscribed"><?php echo $this->__('Sign Up for Newsletter') ?></label>
+            </li>
+        </ul>
+		</fieldset>
+&nbsp;		
+        <button type="button" onclick="ajaxcreate();" class="btn_reg"><span><?php echo $this->__('Submit') ?></span></button>
+		<button type="button" onclick="affichage_divlogin();affichage_divcreate();" class="back_to"><span><?php echo $this->__('Back to login form') ?></span></button>
+		<div class="clear"></div>
+	</form>
+	</div>
+	</div>
+	</div>
+</div>
+
+
+
+<div class="ajaxlogin-forgotbox popup_tl" id="divajaxforgot" style="opacity: 0; display: none;">
+		<div class="popup_tr">
+		<div class="popup_fl">
+		<div class="popup_fr">
+	<div title="<?php echo $this->__('Quit') ?>" style="float: right;" class="popup_close" onclick="affichage_divforgot();"></div>	<h3><?php echo $this->__('Retrieve your password here') ?></h3>
+	
+	<div class="ajaxlogin-forgotbox-erreur" id="divajaxforgoterreur" style="display: none;">
+
+	</div>
+	
+	<form id="form-validate">
+        <p><?php echo $this->__('Please enter your email below and we will send you a new password.') ?></p>
+        <ul class="form-list">
+            <li>
+                <div class="input-box">
+                    <input onKeyDown="enter_forgot(event)" type="text" value="" class="required-entry validate-email input-text" id="ajaxemail_address_forgot" alt="<?php echo $this->__('Email Address') ?>" name="email" />
+                </div>
+
+            </li>
+        </ul>
+&nbsp;
+        <button class="btn_forgot" onclick="ajaxforgot(); return false;" ><span><?php echo $this->__('Submit') ?></span></button>
+		<button type="button" onclick="affichage_divlogin();affichage_divforgot();" class="back_to"><span><?php echo $this->__('Back to login form') ?></span></button>
+    <div class="clear"></div>
+	
+	</form>
+	</div>
+	</div>
+	</div>
+</div>
+
+</ajaxlogin></div>
+
+
+
+
+
+            
+			
+			<div class="popup_tl" id="help_box" style="display: none;">
+					<div class="popup_tr">
+					<div class="popup_fl">
+					<div class="popup_fr">
+						<div class="popup_close" onclick="$('help_box').fade(); return false;"></div>
+							<div class="head">
+								<h4><?php echo $this->__('Help') ?></h4>
+							</div>
+						<?php echo $this->getChildHtml('help_box') ?>
+					</div>
+					</div>
+					</div>
+			</div>
+				
+			</div>	
+
+        <p class="no-display"><a href="#main"><strong><?php echo $this->__('Skip to Main Content') ?> &raquo;</strong></a></p>
+    </div>
+</div>
+<?php echo $this->getChildHtml('topMenu') ?>
+

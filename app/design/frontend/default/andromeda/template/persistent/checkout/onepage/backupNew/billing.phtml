@@ -1,0 +1,440 @@
+<?// ITEAMO . CORRECTION <<<?>
+ 
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category    design
+ * @package     base_default
+ * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+/** @var Mage_Checkout_Block_Onepage_Billing $this */
+?>
+<?
+// ITEAMO . INIT <<<    
+  ini_set('error_reporting', E_ALL &~E_STRICT &~E_NOTICE);
+  ini_set('display_errors', '1');  
+// >>> ITEAMO . INIT
+?>
+<?
+// ITEAMO . SELFDELIVERY PARAMS <<<  
+  $arStoreDeliveryParams['region_id'] = Mage::getStoreConfig(Mage_Shipping_Model_Shipping::XML_PATH_STORE_REGION_ID, Mage::app()->getStore()); // billing[region_id]
+  $arStoreDeliveryParams['city'] = Mage::getStoreConfig(Mage_Shipping_Model_Shipping::XML_PATH_STORE_CITY, Mage::app()->getStore()); // billing[city]
+  $arStoreDeliveryParams['postcode'] = Mage::getStoreConfig(Mage_Shipping_Model_Shipping::XML_PATH_STORE_ZIP, Mage::app()->getStore()); // billing[postcode]
+  $arStoreDeliveryParams['street'] = Mage::getStoreConfig(Mage_Shipping_Model_Shipping::XML_PATH_STORE_ADDRESS1, Mage::app()->getStore()); // billing[street][]
+  
+  $jsonStoreDeliveryParams = Mage::helper('core')->jsonEncode($arStoreDeliveryParams);
+  // print_r($jsonStoreDeliveryParams);
+// >>> ITEAMO . SELFDELIVERY PARAMS
+?>
+<?// ITEAMO . CITIES LIST . CORRECTION <<<
+  /**
+   * getRegions
+   */ 
+  function getRegions()
+  {
+    static $arRegions;
+    if (!$arRegions) 
+    {
+      $cacheKey = 'DIRECTORY_REGIONS_STORE' . Mage::app()->getStore()->getId();
+      if (Mage::app()->useCache('config'))       
+        $arRegions = Mage::app()->loadCache($cacheKey);
+              
+      $arRegions = array();
+      if (empty($arRegions))
+      {   
+        $arRegions = Mage::helper('directory')->getRegionJson();
+        $arRegions = Mage::helper('core')->jsonDecode($arRegions);
+      }        
+      
+      if (Mage::app()->useCache('config'))       
+        Mage::app()->saveCache($arRegions, $cacheKey, array('config'));      
+    }  
+    return $arRegions;
+  }
+  /**
+   * getCitiesByRegions
+   */     
+  function getCitiesByRegions($arRegionsFromBase = array()) 
+  {
+    $fileName = 'russianCitiesByRegions.php';    
+    static $arCitiesByRegions = array();
+    
+    $arCurrentFilePathInfo = pathinfo(__FILE__);    
+    $dataFilePath = $arCurrentFilePathInfo['dirname'] . '/' . $fileName;
+    $arData = file($dataFilePath);        
+                       
+    if (!$arCitiesByRegions) 
+    {
+      $cacheKey = 'DIRECTORY_REGIONS_BY_CITIES_STORE' . Mage::app()->getStore()->getId();
+      if (Mage::app()->useCache('config'))       
+        $arCitiesByRegions = Mage::app()->loadCache($cacheKey);
+      
+      $arCitiesByRegions = array();
+      if (empty($arCitiesByRegions))
+      {   
+        $arRegion = array(
+          'id' => 'no',
+          'name' => 'Остальные',
+        );        
+        foreach($arData as $line)        
+          if (stripos('prefix' . $line, '+')) 
+          {          
+            $arNewRegion['name'] = str_ireplace('+', '', $line);
+            $arNewRegion['name'] = str_ireplace('обл.', '', $arNewRegion['name']);
+            $arNewRegion['name'] = str_ireplace('Республика', '', $arNewRegion['name']);
+            $arNewRegion['name'] = str_ireplace('республика', '', $arNewRegion['name']);
+            $arNewRegion['name'] = trim($arNewRegion['name']);
+            
+            foreach($arRegionsFromBase['RU'] as $regionIdFromBase => $arRegionFromBase)
+              if (stripos('prefix' . $arNewRegion['name'], $arRegionFromBase['name'])
+                  || stripos('prefix' . $arRegionFromBase['name'], $arNewRegion['name'])) 
+                    $arRegion = array(
+                      'id' => $regionIdFromBase,
+                      'name' => $arRegionFromBase['name'],  
+                    );              
+          } else
+            $arCitiesByRegions[$arRegion['id']]['arCities'][$line] = $line;
+        $arCitiesByRegions = Mage::helper('core')->jsonEncode($arCitiesByRegions);        
+      }
+              
+      if (Mage::app()->useCache('config'))       
+        Mage::app()->saveCache($arCitiesByRegions, $cacheKey, array('config'));      
+    }         
+  
+    return $arCitiesByRegions;          
+  }
+  // ----- //
+  
+  $arRegions = getRegions();  
+  $arCitiesByRegions = getCitiesByRegions($arRegions);  
+  
+  // DEBUG <<<
+    // echo '<hr>$arRegions:<hr>'; print_r($arRegions); echo '<hr>';
+    // echo '<hr>$arCitiesByRegions:<hr>'; print_r($arCitiesByRegions); echo '<hr>';
+    // print_r(get_defined_vars());
+    // $this->getAddress()
+  // >>> DEBUG
+  
+// >>> ITEAMO . CITIES LIST . CORRECTION ?>
+
+<form id="co-billing-form" action="">
+
+<fieldset>
+    <ul class="form-list">
+    <?php if ($this->customerHasAddresses()): ?>
+        <li class="wide">
+            <label for="billing-address-select"><?php echo $this->__('Select a billing address from your address book or enter a new address.') ?></label>
+            <div class="input-box">
+                <?php echo $this->getAddressesHtmlSelect('billing') ?>
+            </div>
+        </li>
+    <?php endif; ?>
+
+    <li id="billing-new-address-form"<?php if ($this->customerHasAddresses()): ?> style="display:none;"<?php endif; ?>>
+        <fieldset>
+            <input type="hidden" name="billing[address_id]" value="<?php echo $this->getAddress()->getId() ?>" id="billing:address_id" />
+
+<?// ITEAMO . COLUMNS <<< ?>
+<div class="col2-set">
+  <div class="col-1">
+    <ul>
+      <li class="fields"><?php echo $this->getLayout()->createBlock('customer/widget_name')->setObject($this->getAddress()->getFirstname() ? $this->getAddress() : $this->getQuote()->getCustomer())->setFieldIdFormat('billing:%s')->setFieldNameFormat('billing[%s]')->toHtml() ?></li>
+      <li class="fields">
+          <div class="field">
+              <label for="billing:company"><?php echo $this->__('Company') ?></label>
+              <div class="input-box">
+                  <input type="text" id="billing:company" name="billing[company]" value="<?php echo $this->htmlEscape($this->getAddress()->getCompany()) ?>" title="<?php echo $this->__('Company') ?>" class="input-text" />
+              </div>
+          </div>
+      <?php if(!$this->isCustomerLoggedIn()): ?>
+          <div class="field">
+              <label for="billing:email" class="required"><em>*</em><?php echo $this->__('Email Address') ?></label>
+              <div class="input-box">
+                  <input type="text" name="billing[email]" id="billing:email" 
+                    value="<?php echo $this->htmlEscape($this->getAddress()->getEmail()) ?>" title="<?php echo $this->__('Email Address') ?>" class="input-text validate-email required-entry" />
+              </div>
+          </div>
+      <?php endif ?>
+      </li> 
+      <li class="fields">
+          <div class="field">
+              <label for="billing:telephone" class="required">
+                <em>*</em><?/*// ITEAMO . CORRECTION <<< */?>Телефон (минимум 8 цифр с кодом города)<?/* // >>> ITEAMO . CORRECTION */?><?//=$this->__('Telephone') ?></label>
+              <div class="input-box">
+                  <input type="text" name="billing[telephone]" value="<?php echo $this->htmlEscape($this->getAddress()->getTelephone()) ?>" title="<?php echo $this->__('Telephone') ?>" 
+                    class="input-text required-entry <?/*// ITEAMO . CORRECTION <<< */?>validate-phone<?/* // >>> ITEAMO . CORRECTION */?>" id="billing:telephone" />
+              </div>
+          </div>
+          <div class="field">
+              <label for="billing:fax"><?php echo $this->__('Fax') ?></label>
+              <div class="input-box">
+                  <input type="text" name="billing[fax]" value="<?php echo $this->htmlEscape($this->getAddress()->getFax()) ?>" title="<?php echo $this->__('Fax') ?>" class="input-text" id="billing:fax" />
+              </div>
+          </div>
+      </li> 
+      
+                <?php if(!$this->isCustomerLoggedIn()): ?>
+
+        <?php $_dob = $this->getLayout()->createBlock('customer/widget_dob') ?>
+        <?php $_gender = $this->getLayout()->createBlock('customer/widget_gender') ?>
+            <?php if ($_dob->isEnabled() || $_gender->isEnabled()): ?>
+                <li class="fields">
+                <?php if ($_dob->isEnabled()): ?>
+                    <div class="field">
+                        <?php echo $_dob->setDate($this->getQuote()->getCustomerDob())->setFieldIdFormat('billing:%s')->setFieldNameFormat('billing[%s]')->toHtml() ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($_gender->isEnabled()): ?>
+                    <div class="field">
+                        <?php echo $_gender->setGender($this->getQuote()->getCustomerGender())->setFieldIdFormat('billing:%s')->setFieldNameFormat('billing[%s]')->toHtml() ?>
+                    </div>
+                <?php endif ?>
+                </li>
+            <?php endif ?>
+
+            <?php if ($this->isTaxvatEnabled()):?>
+                <li><?php echo $this->getTaxvatHtml() ?></li>
+            <?php endif; ?>
+
+                <li class="fields" id="register-customer-password">
+                    <div class="field">
+                        <label for="billing:customer_password" class="required"><em>*</em><?php echo $this->__('Password') ?></label>
+                        <div class="input-box">
+                            <input type="password" name="billing[customer_password]" id="billing:customer_password" title="<?php echo $this->__('Password') ?>" class="input-text required-entry validate-password" />
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="billing:confirm_password" class="required"><em>*</em><?php echo $this->__('Confirm Password') ?></label>
+                        <div class="input-box">
+                            <input type="password" name="billing[confirm_password]" title="<?php echo $this->__('Confirm Password') ?>" id="billing:confirm_password" class="input-text required-entry validate-cpassword" />
+                        </div>
+                    </div>
+                </li>
+                <?php echo $this->getChildHtml('persistent.remember.me'); ?>
+                <?php endif; ?>
+                <?php if ($this->isCustomerLoggedIn() && $this->customerHasAddresses()):?>
+                    <li class="control">
+                        <input type="checkbox" name="billing[save_in_address_book]" value="1" title="<?php echo $this->__('Save in address book') ?>" id="billing:save_in_address_book" onchange="if(window.shipping) shipping.setSameAsBilling(false);"<?php if ($this->getAddress()->getSaveInAddressBook()):?> checked="checked"<?php endif;?> class="checkbox" /><label for="billing:save_in_address_book"><?php echo $this->__('Save in address book') ?></label>
+                    </li>
+                <?php else:?>
+                    <li class="no-display"><input type="hidden" name="billing[save_in_address_book]" value="1" /></li>
+                <?php endif; ?>            
+            <?php echo $this->getChildHtml('persistent.remember.me.tooltip'); ?>      
+              
+    </ul> 
+  </div>
+  <div class="col-2">
+  
+  <ul>
+      <li class="wide <?/* // ITEAMO . CORRECTION <<< */?>addressFields<?/* // >>> ITEAMO . CORRECTION */?>">
+          <label for="billing:street1" class="required"><em>*</em><?php echo $this->__('Address') ?></label>
+          <div class="input-box">
+              <input type="text" title="<?php echo $this->__('Street Address') ?>" name="billing[street][]" id="billing:street1" value="<?php echo $this->htmlEscape($this->getAddress()->getStreet(1)) ?>" class="input-text required-entry" />
+          </div>
+      </li>
+      <?php for ($_i=2, $_n=$this->helper('customer/address')->getStreetLines(); $_i<=$_n; $_i++): ?>
+      <li class="wide <?/* // ITEAMO . CORRECTION <<< */?>addressFields<?/* // >>> ITEAMO . CORRECTION */?>">
+          <div class="input-box">
+              <input type="text" title="<?php echo $this->__('Street Address %s', $_i) ?>" name="billing[street][]" id="billing:street<?php echo $_i?>" value="<?php echo $this->htmlEscape($this->getAddress()->getStreet($_i)) ?>" class="input-text" />
+          </div>
+      </li>
+      <?php endfor ?>    
+  <?// ITEAMO . SHIPMENT TYPE CHOICE BLOCK . CORRECTION <<< ?>
+    <?php if ($this->canShip()): ?>        
+        <li class="control">
+            <input type="radio" name="billing[use_for_shipping]" id="billing:use_for_shipping_yes" value="1"<?php if ($this->isUseBillingAddressForShipping()) {?> checked="checked"<?php }?> 
+              title="<?php echo  $this->__('Ship to this address') ?>" onclick="$('shipping:same_as_billing').checked = true; showAddressFields();" class="radio" />
+                <label for="billing:use_for_shipping_yes"><?php echo  $this->__('Ship to this address') ?></label>
+        </li>
+        <li class="control">
+          <script>            
+      		  // jQuery.noConflict();      		        		  
+            arStoreDeliveryParams = <?=$jsonStoreDeliveryParams?>;
+            function hideAddressFields() {                                          
+              region_id = jQuery("[name='billing[region_id]']").val();
+              if (region_id) regionChangeHandler(region_id);                            
+              jQuery("[name='billing[postcode]']").val(arStoreDeliveryParams['postcode']);
+              jQuery("[name='billing[region_id]']").val(arStoreDeliveryParams['region_id']);
+              jQuery("[name='billing[city]']").val(arStoreDeliveryParams['city']);
+              jQuery("[name='billing[street][]']").val(arStoreDeliveryParams['street']);
+              jQuery(".addressFields").hide();                            
+            }
+            function showAddressFields() {                            
+              jQuery(".addressFields").show();
+            }            
+          </script>
+          <label>
+            <input type="radio" name="billing[use_for_shipping]" id="billing:use_for_shipping_yes" value="1" 
+              <?/*if ($this->isUseBillingAddressForShipping()) {?> checked="checked"<?}// */?> 
+              title="<?//=$this->__('Ship to this address')?>Самовывоз" onclick="$('shipping:same_as_billing').checked = true; hideAddressFields();" class="radio selfdelivery" />
+              <?//=$this->__('Ship to this address')?>Самовывоз (<?=$arStoreDeliveryParams['postcode']?>, <?=$arStoreDeliveryParams['city']?>, <?=$arStoreDeliveryParams['street']?>)
+          </label>
+        </li>          
+        <li class="control">
+            <input type="radio" name="billing[use_for_shipping]" id="billing:use_for_shipping_no" value="0"<?php if (!$this->isUseBillingAddressForShipping()) {?> checked="checked"<?php }?> 
+              title="<?php echo $this->__('Ship to different address') ?>" onclick="$('shipping:same_as_billing').checked = false; showAddressFields();" class="radio" />
+                <label for="billing:use_for_shipping_no"><?php echo $this->__('Ship to different address') ?></label>
+        </li>        
+    <?php endif; ?>
+  <?// >>> ITEAMO . SHIPMENT TYPE CHOICE BLOCK . CORRECTION ?>        
+        
+                <li class="fields <?/* // ITEAMO . CORRECTION <<< */?>addressFields<?/* // >>> ITEAMO . CORRECTION */?>">
+                    <div class="field">
+                        <label for="billing:country_id" class="required"><em>*</em><?php echo $this->__('Country') ?></label>
+                        <div class="input-box">
+                            <?php echo $this->getCountryHtmlSelect('billing') ?>
+                        </div>
+                    </div>
+                </li>
+                <li class="fields <?/* // ITEAMO . CORRECTION <<< */?>addressFields<?/* // >>> ITEAMO . CORRECTION */?>">
+                    <div class="field">
+                        <label for="billing:region_id" class="required"><em>*</em><?php echo $this->__('State/Province') ?></label>
+                        <div class="input-box">
+                            <select id="billing:region_id" name="billing[region_id]" title="<?php echo $this->__('State/Province') ?>"
+                                class="validate-select" style="display:none;"
+                                <?// ITEAMO . CITIES LIST . CORRECTION <<< ?>
+                                 onchange="regionChangeHandler(this.value);">
+                                <?// >>> ITEAMO . CITIES LIST . CORRECTION ?> 
+                                <option value=""><?php echo $this->__('Please select region, state or province') ?></option>
+                            </select>
+                            <script type="text/javascript">
+                            //<![CDATA[
+                                $('billing:region_id').setAttribute('defaultValue',  "<?php echo $this->getAddress()->getRegionId() ?>");
+                            //]]>
+                            </script>
+                            <input type="text" id="billing:region" name="billing[region]" value="<?php echo $this->htmlEscape($this->getAddress()->getRegion()) ?>"  title="<?php echo $this->__('State/Province') ?>" class="input-text" style="display:none;" />
+                        </div>
+                    </div>                                   
+                    <div class="field">
+                        <label for="billing:city" class="required"><em>*</em><?=$this->__('City') ?></label>
+                        <?// ITEAMO . CITIES LIST . CORRECTION <<< ?>
+                          <div class="input-box" style="margin-bottom:5px;">
+                            <select id="arCitiesByRegion" name="" title="Город" onchange="cityChangeHandler(this.value);">
+                              <option value="">Выберите город</option>
+                              <?/*?><optgroup label="TEST"><?*/?><?/*?></optgroup><?*/?>                                
+                            </select>
+                          </div>
+                        <?// >>> ITEAMO . CITIES LIST . CORRECTION ?>                                                
+                        <div class="input-box">
+                            <input type="text" title="<?php echo $this->__('City') ?>" name="billing[city]"                               
+                              <?// ITEAMO . CITIES LIST . CORRECTION <<< ?>
+                                value="<?if (strlen($this->getAddress()->getCity()) > 0) echo $this->htmlEscape($this->getAddress()->getCity()); else echo 'Введите название города';?>"
+                                onfocus="if(this.value == this.defaultValue) {this.value=''; this.style.color = 'black';}" 
+                                onblur="if(!this.value) {this.value=this.defaultValue; this.style.color = 'grey';}"
+                                style="color:grey"
+                                defaultValue="Введите название города"                                
+                              <?// >>> ITEAMO . CITIES LIST . CORRECTION ?> 
+                              class="input-text required-entry <?// ITEAMO . CITIES LIST . CORRECTION <<< ?>objCityInput<?// >>> ITEAMO . CITIES LIST . CORRECTION ?>" 
+                              id="billing:city" />
+                        </div>
+                        <?// ITEAMO . CITIES LIST . CORRECTION <<< ?>
+                            <script>  
+                              arCitiesByRegions = <?=$arCitiesByRegions?>;                                                          
+                        		  // jQuery.noConflict();      		        		  
+                              // jQuery(document).ready(function($)                                                        
+                              function regionChangeHandler(regionValue) 
+                              {                            
+                                objCitiesByRegion = jQuery('#arCitiesByRegion');                            
+                                objCitiesByRegion.html('');
+                                objCitiesByRegion.attr('name', '');
+                                
+                                region = countryRegions['RU'][regionValue]['name'];
+                                arCitiesByRegion = arCitiesByRegions[regionValue]['arCities'];
+                                                          
+                                if (arCitiesByRegion)
+                                {
+                                  // objCitiesByRegion.attr('disabled', '');                              
+                                  objCitiesByRegion.attr('name', 'billing[city]');                                                                                                                                                        
+                                  for(key in arCitiesByRegion)
+                                  {
+                                    city = arCitiesByRegion[key];                                
+                                    objCitiesByRegion.append('<option value="' + city + '">' + city + '</option>');
+                                  }                              
+                                	for (var key in arCitiesByRegion) 
+                                  {
+                                		firstCity = arCitiesByRegion[key];
+                                		break;
+                                	}                              
+                                  cityChangeHandler(firstCity);
+                                }                            
+                              }
+                              function cityChangeHandler(city) 
+                              {
+                                  objCityInput = jQuery('.objCityInput');                      
+                                  objCityInput.attr('value', city);                            
+                              }
+                              // });          
+                            </script>                    
+                        <?// >>> ITEAMO . CITIES LIST . CORRECTION ?>                        
+                    </div>                     
+                </li> 
+                <li class="fields <?/* // ITEAMO . CORRECTION <<< */?>addressFields<?/* // >>> ITEAMO . CORRECTION */?>">
+                    <div class="field">
+                        <label for="billing:postcode" class="required"><em>*</em><?php echo $this->__('Zip/Postal Code') ?></label>
+                        <div class="input-box">
+                            <input type="text" title="<?php echo $this->__('Zip/Postal Code') ?>" name="billing[postcode]" id="billing:postcode" value="<?php echo $this->htmlEscape($this->getAddress()->getPostcode()) ?>" 
+                              class="input-text validate-zip <?/* // ITEAMO . CORRECTION <<< ?>validate-zip-international<?// >>> ITEAMO . CORRECTION */?> required-entry" />
+                        </div>
+                    </div>
+                </li>
+    </ul>
+  </div>
+</div>    
+<?// >>> ITEAMO . COLUMNS ?>
+
+        
+        </fieldset>
+     </li>    
+    </ul>
+    <?php if (!$this->canShip()): ?>
+        <input type="hidden" name="billing[use_for_shipping]" value="1" />
+    <?php endif; ?>
+    <div class="buttons-set" id="billing-buttons-container">
+        <p class="required"><?php echo $this->__('* Required Fields') ?></p>
+        <button type="button" title="<?php echo $this->__('Continue') ?>" class="button image continue" onclick="billing.save()"><span><span><?php echo $this->__('Continue') ?></span></span></button>
+        <span class="please-wait" id="billing-please-wait" style="display:none;">
+            <img src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif') ?>" alt="<?php echo $this->__('Loading next step...') ?>" title="<?php echo $this->__('Loading next step...') ?>" class="v-middle" /> <?php echo $this->__('Loading next step...') ?>
+        </span>
+    </div>
+</fieldset>
+</form>
+<script type="text/javascript">
+//<![CDATA[
+    var billing = new Billing('co-billing-form', '<?php echo $this->getUrl('checkout/onepage/getAddress') ?>address/', '<?php echo $this->getUrl('checkout/onepage/saveBilling') ?>');
+    var billingForm = new VarienForm('co-billing-form');
+
+    //billingForm.setElementsRelation('billing:country_id', 'billing:region', '<?php echo $this->getUrl('directory/json/childRegion') ?>', '<?php echo $this->__('Select State/Province...') ?>');
+    $('billing-address-select') && billing.newAddress(!$('billing-address-select').value);
+
+    var billingRegionUpdater = new RegionUpdater('billing:country_id', 'billing:region', 'billing:region_id', countryRegions, undefined, 'billing:postcode');
+    Event.observe($('onepage-guest-register-button'), 'click', function(event) {
+        var billingRememberMe = $$('#billing-new-address-form li #remember-me-box');
+        if(billingRememberMe.length > 0) {
+            billingRememberMe = $(billingRememberMe[0].parentNode);
+            if ($('login:guest') && $('login:guest').checked) {
+                billingRememberMe.hide();
+            } else if ($('login:register') && ($('login:register').checked || $('login:register').type == 'hidden')) {
+                billingRememberMe.show();
+            }
+        }
+    })
+//]]>
+</script>

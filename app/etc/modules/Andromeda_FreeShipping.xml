@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+	<modules>
+		<Andromeda_FreeShipping>
+			<active>true</active>
+			<codePool>local</codePool>
+		</Andromeda_FreeShipping>
+	</modules>
+</config>

@@ -1,0 +1,80 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category   design_default
+ * @package    Mage
+ * @copyright  Copyright (c) 2008 Irubin Consulting Inc. DBA Varien (http://www.varien.com)
+ * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php if($this->getItems()->getSize()): ?>
+<div class="box  mini-related-items">
+    <div class="head">
+        <h4><?php echo $this->__('Related Products') ?></h4>
+    </div>
+    <table cellspacing="0" class="recently-list">
+   <tr>
+		<?php $i=0; foreach($this->getItems() as $_item): ?>
+		<?php if ($i>4): continue; endif; ?>
+		<?php $_categories = $_item->getCategoryIds();
+				  $_category = Mage::getModel('catalog/category')->load($_categories[0]);
+				  $url = substr($this->getUrl($_category->getUrlPath()),0,-6).'/'.basename($_item->getProductUrl()); ?>
+				  <td<?php if($_item->isComposite() || !$_item->isSaleable()): ?> class="super-products"<?php endif; ?>>
+            
+      
+            <p class="product-image">
+                <a href="<?php echo $url ?>"><img src="<?php echo $this->helper('catalog/image')->init($_item, 'thumbnail')->resize(150) ?>" alt="<?php echo $this->htmlEscape($_item->getName()) ?>" width="150" height="150" /></a>
+            </p>
+            <div class="product-details">
+                   <h5> <a href="<?php echo $url ?>"><?php echo $this->htmlEscape($_item->getName()) ?></a></h5>
+				<?php if ($this->htmlEscape($_item->getMetka())==11): ?>
+				<div class="attribute_hit"></div>
+				<?php elseif ($this->htmlEscape($_item->getMetka())==12): ?>
+				<div class="attribute_sale"></div>
+				<?php elseif ($this->htmlEscape($_item->getMetka())==13): ?>
+				<div class="attribute_new"></div>
+				<?php endif; ?>
+				<br class="clear" />
+				   <?php if ($_item->getShortDescription()):?>
+				   <div class="short-description"><?php echo $_item->getShortDescription() ?></div>
+				   <?php endif;?>
+                   <?php echo $this->getPriceHtml($_item, true) ?>
+<?php /* ?>
+                    <?php if ($this->helper('wishlist')->isAllow()) : ?>
+                    <a href="<?php echo $this->getAddToWishlistUrl($_item) ?>" class="link-cart"><?php echo $this->__('Add to Wishlist') ?></a>
+                    <?php endif; ?>
+<?php */ ?>
+           
+				<?php if(!$_item->isSaleable()): ?>
+                <div class="out-of-stock"><?php echo $this->__('Out of stock') ?></div>
+                <?php endif; ?>
+                </div>
+			
+        </td>
+    <?php $i++; endforeach; ?>
+    <?php for($i;$i%4!=0;$i++): ?>
+            <td>&nbsp;</td>
+        <?php endfor ?>
+        </tr>
+    </table>
+        
+    </div>
+
+<?php endif ?>

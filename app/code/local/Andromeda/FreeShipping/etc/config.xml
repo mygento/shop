@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<config>
+     <default>  
+         <carriers>  
+             <!-- Use group alias -->  
+             <andromedafreeshipping>  
+                 <active>1</active>  
+                 <!-- Use method name -->  
+                 <allowed_methods>free</allowed_methods>  
+                 <!-- Use method name -->  
+                 <methods>free</methods>  
+                 <sallowspecific>0</sallowspecific>  
+                 <model>Andromeda_FreeShipping_Model_Carrier_ShippingMethod</model>  
+                 <name>Курьерская доставка</name>  
+                 <title>Доставка по Санкт-Петербургу</title>  
+                 <specificerrmsg>  
+                     This shipping method is currently unavailable.  
+                     If you would like to ship using this shipping  
+                    method, please contact us.  
+                 </specificerrmsg>  
+                <handling_type>F</handling_type>  
+             </andromedafreeshipping>  
+         </carriers>  
+     </default>  
+	<modules>
+		<Andromeda_FreeShipping>
+			<version>0.0.1</version>
+		</Andromeda_FreeShipping>
+	</modules>
+    <global>
+        <models>
+            <FreeShipping>
+                <class>Andromeda_FreeShipping_Model</class>
+            </FreeShipping>
+        </models>
+ 
+        <resources>
+            <FreeShipping_setup>
+                <setup>
+                    <module>Andromeda_FreeShipping</module>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </FreeShipping_setup>
+        </resources>
+    </global>
+</config>

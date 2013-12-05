@@ -1,0 +1,135 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @category   CaffeineJunkies
+ * @package    CaffeineJunkies_CronProfiles
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+
+/**
+ * Configuration!
+ *
+ * @category   CaffeineJunkies
+ * @package    CaffeineJunkies_CronProfiles
+ * @author     Patrick McKinley <patrick.w.mckinley@gmail.com>
+ */
+-->
+<config>
+    <modules>
+        <CaffeineJunkies_CronProfiles>
+            <version>0.1.5</version>
+        </CaffeineJunkies_CronProfiles>
+    </modules>
+    
+    <global>
+        <cronprofiles>
+            <action_codes>
+                <io><label>Input/Output</label><translate>cronprofiles</translate></io>
+                <zip><label>Zip</label><translate>cronprofiles</translate></zip>
+                <separate><label>Separate</label><translate>cronprofiles</translate></separate>
+                <core><label>Runtime</label><translate>cronprofiles</translate></core>
+            </action_codes>
+            <log_types>
+                <message><label>Message</label><translate>cronprofiles</translate></message>
+                <notice><label>Notice</label><translate>cronprofiles</translate></notice>
+                <error><label>Error</label><translate>cronprofiles</translate></error>
+            </log_types>
+        </cronprofiles>
+        <models>
+            <cronprofiles>
+                <class>CaffeineJunkies_CronProfiles_Model</class>
+                <resourceModel>cronprofiles_mysql4</resourceModel>
+            </cronprofiles>
+            <dataflow>
+                <rewrite>
+                    <profile>CaffeineJunkies_CronProfiles_Model_Profile</profile>
+                </rewrite>
+            </dataflow>
+            <cronprofiles_mysql4>
+                <class>CaffeineJunkies_CronProfiles_Model_Mysql4</class>
+                <entities>
+                    <profile_log>
+                        <table>cronprofiles_profile_log</table>
+                    </profile_log>
+                </entities>
+            </cronprofiles_mysql4>
+        </models>
+        <resources>
+            <cronprofiles_setup>
+                <setup>
+                    <module>CaffeineJunkies_CronProfiles</module>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </cronprofiles_setup>
+            <cronprofiles_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </cronprofiles_write>
+            <cronprofiles_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </cronprofiles_read>
+        </resources>
+        <blocks>
+            <cronprofiles>
+                <class>CaffeineJunkies_CronProfiles_Block</class>
+            </cronprofiles>
+            <adminhtml>
+                <rewrite>
+                    <system_convert_profile_edit_tab_edit>CaffeineJunkies_CronProfiles_Block_System_Convert_Profile_Edit_Tab_Edit</system_convert_profile_edit_tab_edit>
+                    <system_convert_profile_edit_tabs>CaffeineJunkies_CronProfiles_Block_System_Convert_Profile_Edit_Tabs</system_convert_profile_edit_tabs>
+                </rewrite>
+            </adminhtml>
+        </blocks>
+        <helpers>
+            <cronprofiles>
+                <class>CaffeineJunkies_CronProfiles_Helper</class>
+            </cronprofiles>
+        </helpers>
+        <translate>
+            <modules>
+                <CaffeineJunkies_CronProfiles>
+                    <files>
+                        <default>CaffeineJunkies_CronProfiles.csv</default>
+                    </files>
+                </CaffeineJunkies_CronProfiles>
+            </modules>
+        </translate>
+    </global>
+    
+    <admin>
+        <routers>
+            <adminhtml>
+                <use>admin</use>
+                <args>
+                    <modules>
+                        <CaffeineJunkies_CronProfiles_Override before="Mage_Adminhtml">CaffeineJunkies_CronProfiles</CaffeineJunkies_CronProfiles_Override>
+                        <!--CaffeineJunkies_CronProfiles_Admin before="Mage_Adminhtml">CaffeineJunkies_CronProfiles</CaffeineJunkies_CronProfiles_Admin-->
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+    
+    <default>
+        <admin>
+            <cronprofiles>
+                <active>1</active>
+                <log_timeout>14</log_timeout>
+            </cronprofiles>
+        </admin>
+    </default>
+    
+    <crontab>
+        <jobs>
+            <cronprofiles_run_profiles>
+                <schedule><cron_expr>*/5 * * * *</cron_expr></schedule>
+                <run><model>cronprofiles/observer::runScheduledProfiles</model></run>
+            </cronprofiles_run_profiles>
+        </jobs>
+    </crontab>
+</config>

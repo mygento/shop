@@ -1,0 +1,92 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category   design_default
+ * @package    Mage
+ * @copyright  Copyright (c) 2008 Irubin Consulting Inc. DBA Varien (http://www.varien.com)
+ * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php echo $this->getMessagesBlock()->getGroupedHtml() ?>
+ 
+<div class="col2-set">
+
+       
+
+        <?php if( $this->getQuote()->isAllowedGuestCheckout() ): ?>
+            <ul class="form-list">
+                <li>
+                    <input type="radio" onClick="Element.hide('btn_login');Element.show('btn_reg');Element.removeClassName('login-email', 'validation-failed');Element.removeClassName('login-password', 'validation-failed');" name="checkout_method" id="login:register" value="register"<?php if($this->getQuote()->getCheckoutMethod()=='register' || !$this->getQuote()->isAllowedGuestCheckout()): ?> checked="checked"<?php endif ?> />
+                    <label for="login:register"><?php echo $this->__('Register') ?></label>
+                </li>
+				<li>
+                    <input type="radio" onClick="Element.show('btn_login');Element.hide('btn_reg');" name="checkout_method" id="login:registered" value="registered" />
+                    <label for="login:registered"><?php echo $this->__('Already registered?') ?>, <?php echo $this->__('Password') ?></label>
+					
+			
+      <form id="login-form" action="<?php echo $this->getPostAction() ?>" method="post">
+
+            <ul class="form-list">
+                <li id="email_address">
+                    <div class="input-box">
+                        <label for="login-email"><?php echo $this->__('Email Address') ?></label>
+                        <input onkeyup="javasript:zamena('billing:email',this.value);" type="text" class="input-text required-entry validate-email" id="login-email" name="login[username]" value="<?php echo $this->htmlEscape($this->getUsername()) ?>" />
+                    </div>
+                </li>
+                <li id="your_pass">
+                    <div class="input-box">
+                        <input type="password" class="input-text required-entry" id="login-password" name="login[password]" />
+						<a href="<?php echo $this->getUrl('customer/account/forgotpassword') ?>"><?php echo $this->__('Forgot your password?') ?></a>
+                    </div>
+                </li>
+            </ul>
+        </form>
+                </li>
+				<?php if( $this->getQuote()->isAllowedGuestCheckout() ): ?>
+                <li>
+                    <input type="radio" onClick="Element.hide('btn_login');Element.show('btn_reg');Element.removeClassName('login-email', 'validation-failed');Element.removeClassName('login-password', 'validation-failed');" name="checkout_method" id="login:guest" value="guest"<?php if($this->getQuote()->getCheckoutMethod()=='guest'): ?> checked="checked"<?php endif ?> />
+                    <label for="login:guest"><?php echo $this->__('Checkout as Guest') ?></label>
+                </li>
+                <?php endif; ?>                
+            </ul>
+           
+        <?php else: ?>
+            <input type="hidden" name="checkout_method" id="login:register" value="register" checked="checked" />
+        <?php endif; ?>
+</div>
+
+        <div class="button-set">            
+            <button id="btn_reg" class="form-button" onclick="checkout.setMethod();"><span><?php echo ($this->getQuote()->isAllowedGuestCheckout() ? $this->__('Continue') : $this->__('Register')) ?></span></button>
+            <button id="btn_login" style="display:none;" class="form-button" onclick="loginForm.submit()" ><span><?php echo $this->__('Login') ?></span></button>
+        </div>
+
+
+<script type="text/javascript">
+//<![CDATA[
+    var loginForm = new VarienForm('login-form', true);
+    $('login-email').observe('keypress', bindLoginPost);
+    $('login-password').observe('keypress', bindLoginPost);
+    function bindLoginPost(evt){
+        if (evt.keyCode == Event.KEY_RETURN) {
+            loginForm.submit();
+        }
+    }
+//]]>
+</script>

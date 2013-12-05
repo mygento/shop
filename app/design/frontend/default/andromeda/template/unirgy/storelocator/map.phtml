@@ -1,0 +1,200 @@
+<?php
+/**
+ * Unirgy_StoreLocator extension
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Open Software License (OSL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/osl-3.0.php
+ *
+ * @category   Unirgy
+ * @package    Unirgy_StoreLocator
+ * @copyright  Copyright (c) 2008 Unirgy LLC
+ * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+
+/**
+ * @category   Unirgy
+ * @package    Unirgy_StoreLocator
+ * @author     Boris (Moshe) Gurevich <moshe@unirgy.com>
+ */
+?>
+<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;key=<?php echo Mage::getStoreConfig('ustorelocator/general/google_api_key')?>" type="text/javascript"></script>
+
+<script type="text/javascript">
+//<![CDATA[
+
+function UnirgyStoreLocator(config) {
+    var map;
+    var geocoder;
+
+    function searchLocationsNear(center, params) {
+        var searchUrl = config.searchUrl+'?lat='+center.lat()+'&lng='+center.lng()+'&'+Object.toQueryString(params);
+        GDownloadUrl(searchUrl, function(data) {
+            var xml = GXml.parse(data);
+            var entries = xml.documentElement.getElementsByTagName('marker');
+            map.clearOverlays();
+
+            var sidebar = config.sidebarEl;
+            sidebar.innerHTML = '';
+            if (entries.length == 0) {
+                sidebar.innerHTML = 'No results found.';
+                map.setCenter(new GLatLng(40, -100), 4);
+                return;
+            }
+
+            var bounds = new GLatLngBounds();
+            for (var i = 0; i < entries.length; i++) {
+                var entry = {};
+                for (var j in entries[i].attributes) {
+                    entry[entries[i].attributes[j].nodeName] = entries[i].attributes[j].nodeValue;
+                };
+                var point = new GLatLng(parseFloat(entry.latitude), parseFloat(entry.longitude));
+                bounds.extend(point);
+                var marker = createMarker(entry, point);
+                map.addOverlay(marker);
+                var sidebarEntry = createSidebarEntry(entry, marker);
+                sidebar.appendChild(sidebarEntry);
+             }
+             map.setCenter(bounds.getCenter(), map.getBoundsZoomLevel(bounds));
+        });
+    }
+
+    function createMarker(m, point) {
+        var marker = new GMarker(point);
+        GEvent.addListener(marker, 'click', function() {
+            marker.openInfoWindowHtml(config.generateMarkerHtml(m));
+        });
+        return marker;
+    }
+
+    function createSidebarEntry(m, marker) {
+        var a = document.createElement('a');
+        a.href = "javascript:void(0)";
+        a.innerHTML = config.generateSidebarHtml(m);
+        GEvent.addDomListener(a, 'click', function() {
+            GEvent.trigger(marker, 'click');
+        });
+        return a;
+    }
+
+    return {
+        load: function () {
+            if (!GBrowserIsCompatible()) return;
+            geocoder = new GClientGeocoder();
+            map = new GMap2(config.mapEl);
+            map.addControl(new GSmallMapControl());
+            map.addControl(new GMapTypeControl());
+            map.setCenter(new GLatLng(40, -100), 4);
+        },
+        search: function(address, params) {
+            geocoder.getLatLng(address, function(latlng) {
+                if (!latlng) {
+                    alert('The address is not valid: '+address);
+                } else {
+                    searchLocationsNear(latlng, params);
+                }
+            });
+        }
+    };
+}
+
+//]]>
+</script>
+
+<style type="text/css">
+#sidebar a { cursor:pointer; margin-bottom:5px; background-color:#fff; display:block; }
+#sidebar a:hover { background-color:#eee; }
+</style>
+<div class="page-title">
+	<h2><?php echo $this->__('Find a store')?></h2>
+</div>
+<div class="divider"></div>
+<form id="store_locator_form" onsubmit="return false">
+	<fieldset class="group-select">
+		<ul>
+			<li>
+                <label for="address"><?php echo $this->__('Address')?></label><br/>
+			    <input type="text" class="input-text" id="address" name="address" style="width:300px;"/>
+            </li>
+			<li>
+				<div class="input-box" style="width:95px;">
+				    <label for="radius"><?php echo $this->__('Radius')?></label><br/>
+				    <select id="radius" name="radius" style="width:80px;">
+				        <option value="25" selected>25</option>
+				        <option value="100">100</option>
+				        <option value="200">200</option>
+				    </select>
+                </div>
+                <!--
+				<div class="input-box">
+				<label for="product_type"><?php echo $this->__('Product Type')?></label><br/>
+				<select id="product_type" name="product_type" style="width:211px;">
+				  <option value="" selected><?php echo $this->__('All')?></option>
+				  <option value="type1"><?php echo $this->__('Type 1')?></option>
+				  <option value="type2"><?php echo $this->__('Type 2')?></option>
+				  <option value="type3"><?php echo $this->__('Type 3')?></option>
+				</select>
+                </div>
+                -->
+            </li>
+        </ul>
+        <br/>
+        <input type="submit" class="form-button" value="<?php echo $this->__('Submit')?>" />
+        <input type="reset" class="form-button" value="<?php echo $this->__('Reset')?>" />
+    </fieldset>
+</form>
+<div id="storelocator-results" style=" visibility:hidden;">
+	<div class="divider"></div>
+	<div style="width:610px; font-family:Arial, sans-serif; font-size:11px; border:1px solid black; background:white;">
+		<table>
+		<tbody>
+		  <tr id="cm_mapTR">
+			<td width="200" valign="top"> <div id="sidebar" style="overflow: auto; height: 380px; padding:10px; font-size: 11px; color: #000"></div></td>
+			<td> <div id="map" style="overflow: hidden; width:410px; height:400px"></div> </td>
+		  </tr>
+		</tbody>
+	  </table>
+	</div>
+</div>
+<script type="text/javascript">
+var ex;
+(function(){
+    var storeLocator = new UnirgyStoreLocator({
+        mapEl: $('map'),
+        sidebarEl: $('sidebar'),
+        searchUrl: '<?php echo $this->getUrl('ustorelocator/location/search')?>',
+        generateSidebarHtml: function(m) {
+            return '<b>' + m.title + '</b> (' + parseFloat(m.distance).toFixed(1) + ' ' + m.units + ')<br/>'
+                + m.address_display.replace(/\n/, '<br/>');
+        },
+        generateMarkerHtml: function(m) {
+            var url = m.website_url.replace(/\s/,'');
+            return '<b>' + m.title + '</b> <br/>'
+                + m.address_display.replace(/\n/, '<br/>') + '<br/>'
+                + (m.phone.length>5 ? m.phone + '<br/>' : '')
+                + '<br/>'
+                + (url.length>5 ? '<a href="' + (url.match(/@/) ? 'mailto:' : '') + url + '"><strong>' + url + '</strong></a><br/>' : '')
+                /*
+                + '<p>Product Types: '
+                + (m.product_types.match(/baby/) ? 'Custom Baby; ' : '')
+                + (m.product_types.match(/wedding/) ? 'Custom Wedding; ' : '')
+                + (m.product_types.match(/card/) ? 'Greeting Cards; ' : '')
+                + '</p>'*/
+                + '<p>' + m.notes + '</p>';
+        }
+    });
+
+    Event.observe($('store_locator_form'), 'submit', function() {
+        $('storelocator-results').style.visibility = 'visible';
+        storeLocator.search($('address').value, {
+            radius: $('radius').value/*,
+            type: $('product_type').value*/
+        });
+    });
+    Event.observe(window, 'load', storeLocator.load);
+    Event.observe(window, 'unload', GUnload);
+})();
+</script>

@@ -1,0 +1,16 @@
+// ITEAMO . CORRECTION <<<
+"INN","ИНН"
+"KPP","КПП"
+"BIK","БИК"
+"Account","Р/C"
+// ITEAMO . CORRECTION <<<
+"Payer","Плательщик"
+// >>> ITEAMO . CORRECTION
+"Clearing","Безналичный платеж"
+"INN: %s","ИНН: %s"
+"KPP: %s","КПП: %s"
+"BIK: %s","БИК: %s"
+"Account: %s","Р/C: %s"
+// ITEAMO . CORRECTION <<<
+"Payer: %s","Плательщик: %s"
+// >>> ITEAMO . CORRECTION

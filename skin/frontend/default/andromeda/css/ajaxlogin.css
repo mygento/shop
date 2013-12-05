@@ -1,0 +1,140 @@
+.ajaxlogin-loginbox
+{
+	position:absolute; 
+	top:29px;
+	right: 0;
+	width:320px;
+	text-align: left;
+	z-index:10000;
+}
+
+.ajaxlogin-createbox
+{
+	position:absolute; 
+	top:29px;
+	right: 0;
+	width:320px;
+	text-align:left;
+	z-index:10000;
+}
+
+#divajaxcreate .input-box {
+	padding-bottom: 12px;
+}
+
+#ajaxpassword, #ajaxconfirmation {
+	width: 110px;
+}
+
+.btn_reg, .btn_forgot {background:url(../images/ajaxlogin/btn_reg.png) no-repeat;
+border:none;
+cursor:pointer;
+height:31px;
+text-indent:-666em;
+width:144px;
+margin:5px 0 0 60px;
+}
+
+.btn_forgot {
+	background:url(../images/ajaxlogin/btn_forgot.png) no-repeat;
+	margin:0 0 0 -5px;
+	width:120px;
+}
+
+#divajaxforgot .input-box {
+	padding-top: 15px;
+}
+
+.back_to {
+background:none;
+border:none;
+color:#5F5F5F;
+cursor:pointer;
+font-size:14px;
+font-weight:bold;
+height:30px;
+}
+
+.back_to span {
+	border-bottom:2px solid #5F5F5F;
+}
+
+.ajaxlogin-forgotbox
+{
+	position:absolute; 
+	top:29px;
+	right: 0;
+	width:320px;
+	text-align:left;
+	z-index:10000;
+}
+
+.ajaxlogin-loadbox
+{
+	position:fixed; 
+	padding:6px;
+	width:320px;
+	left:40%;
+	top:40%;
+	background-color:white;
+	border:1px solid #ccc;
+	text-align:center;
+	z-index:10000;
+}
+
+.ajaxlogin-messagebox
+{
+	position:fixed;
+	width:320px;
+	left:40%;
+	top:40%;
+	background-color:white;
+	border:1px solid #ccc;
+	text-align:center;
+	z-index:10000;
+}
+
+.ajaxlogin-loginbox-erreur
+{
+ color: #d40000;
+}
+
+.ajaxlogin-createbox-erreur
+{
+ color: #d40000;
+}
+
+.ajaxlogin-forgotbox-erreur
+{
+ color: #d40000;
+}
+
+.ajaxlogin-fieldset
+{ }
+
+.ajaxlogin-legend
+{
+	padding-left:8px;
+	color:white;
+	background-color:rgb(241,130,0);
+	border:rgb(222,84,0);
+	text-align:left;
+}
+
+.ajaxlogin-quit-buttun
+{
+    background-image:url(../images/ajaxlogin/quit.png);
+    background-repeat:no-repeat;
+    border:none;
+	height:13px;
+	width:13px;
+}
+
+.ajaxlogin-quit-buttun:hover
+{
+    background-image:url(../images/ajaxlogin/quithover.png);
+    background-repeat:no-repeat;
+    border:none;
+	height:13px;
+	width:13px;
+}

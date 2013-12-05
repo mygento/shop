@@ -1,0 +1,154 @@
+<?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+<?
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category   design_default
+ * @package    Mage
+ * @copyright  Copyright (c) 2008 Irubin Consulting Inc. DBA Varien (http://www.varien.com)
+ * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<fieldset class="form-list">
+<?
+// ITEAMO . TEST <<<
+/*
+$paymentBlock = Mage::helper('payment')->getInfoBlock($this->getPayment())->setIsSecureMode(true);
+$paymentBlock->getMethod()->setStore($storeId);
+$paymentBlockHtml = $paymentBlock->toHtml();
+echo $paymentBlockHtml;
+// */
+// >>> ITEAMO . TEST
+?>
+<?
+// ITEAMO . INIT <<<    
+  ini_set('error_reporting', E_ALL &~E_STRICT &~E_NOTICE);
+  ini_set('display_errors', '1');  
+// >>> ITEAMO . INIT
+?>
+<?
+// ITEAMO . PAYMENT FORM . CORRECTION <<< 
+  // sales_flat_order: entity_id customer_email customer_id
+  // customer_entity: entity_id
+  // sales_flat_order_payment: account Additional Information	bik 	inn 	kpp 	payer
+     // entity_id: 245 - sales_flat_order
+  $arPreviousOrderPaymentInfo = array();  
+  // if (strlen($this->getInfoData('kpp')) < 3)  {
+    // Mage_Customer_Helper_Data::getCustomer();        
+    $arRecordCustomer = $this->helper('customer/data')->getCurrentCustomer();
+    $arCustomer['id'] = $arRecordCustomer->_origData['entity_id'];
+    // $arCustomer['email'] = $arRecordCustomer->_origData['email'];         
+    
+    $quoteID = Mage::getSingleton("checkout/session")->getQuote()->getId();
+    $arQuote = Mage::getModel("sales/quote")->load($quoteID);    
+    $arCustomer['email'] = $arQuote->_data['customer_email']; //  = 'test@mail.ru';    
+    
+    // /*
+    $query = 'SELECT account, bik, inn, kpp, payer FROM sales_flat_order_payment 
+      WHERE parent_id IN (SELECT entity_id FROM sales_flat_order 
+      WHERE customer_id = "' . $arCustomer['id'] . '" OR customer_email = "' . $arCustomer['email'] . '" ORDER BY created_at DESC) LIMIT 1';
+    // SELECT account, bik, inn, kpp, payer FROM sales_flat_order_payment WHERE parent_id IN (SELECT entity_id FROM sales_flat_order WHERE customer_id = "" 
+    // OR customer_email = "" ORDER BY created_at LIMIT 1          
+    $db = Mage::getSingleton('core/resource')->getConnection('core_read');    
+    $arPreviousOrderPaymentInfo = $db->query($query)->fetch();
+    // */
+  // }  
+  // DEBUG <<<    
+    // print_r($arCustomer);
+    // echo $query;            
+    // print_r($arPreviousOrderPaymentInfo);
+  // >>> DEBUG   
+// >>> ITEAMO . PAYMENT FORM . CORRECTION 
+?>        
+    
+    <ul id="payment_form_<?php echo $this->getMethodCode() ?>" style="display:none">
+        <li>
+            <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+              <?if ($arPreviousOrderPaymentInfo){?><p class="note"><small>Загружены данные с Вашей последней оплаты</small></p><?}?>
+            <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>         
+            <div class="input-box">
+                <label for="inn">
+                  <?php echo $this->__('INN') ?> 
+                  <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                  <small>(10 цифр)</small>
+                  <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                
+                <span class="required">*</span></label><br />
+                <input type="text" id="inn" name="payment[inn]" title="<?php echo $this->__("INN") ?>" 
+                <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                  class="required-entry input-text validate-number validate-length maximum-length-10 minimum-length-10"                 
+                  value="<?=($this->htmlEscape($this->getInfoData('inn')))?$this->htmlEscape($this->getInfoData('inn')):$arPreviousOrderPaymentInfo['inn']?>"/>
+                <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>
+            </div>
+            <div class="input-box">
+                <label for="kpp">
+                  <?php echo $this->__('KPP') ?>
+                  <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                    <small>(9 цифр)</small>
+                  <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                   
+                <span class="required">*</span></label><br />
+                <input type="text" id="kpp" name="payment[kpp]" title="<?php echo $this->__("kpp") ?>"                 
+                <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                  class="required-entry input-text validate-number validate-length maximum-length-9 minimum-length-9"
+                  value="<?=($this->htmlEscape($this->getInfoData('kpp')))?$this->htmlEscape($this->getInfoData('kpp')):$arPreviousOrderPaymentInfo['kpp']?>"/>
+                <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                  
+            </div>
+        </li>
+        <li>
+            <div class="input-box">
+                <label for="bik">
+                  <?php echo $this->__('BIK') ?>
+                  <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                    <small>(9 цифр)</small>
+                  <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                   
+                <span class="required">*</span></label><br />
+                <input type="text" id="bik" name="payment[bik]" title="<?php echo $this->__("BIK") ?>"                  
+                <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                  class="required-entry input-text validate-number validate-length maximum-length-9 minimum-length-9"
+                  value="<?=($this->htmlEscape($this->getInfoData('bik')))?$this->htmlEscape($this->getInfoData('bik')):$arPreviousOrderPaymentInfo['bik']?>"/>
+                <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                                    
+            </div>
+        </li>
+        <li>
+            <div class="input-box">
+                <label for="account">
+                <?php echo $this->__('Account') ?>
+                  <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                    <small>(20 цифр)</small>
+                  <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                 
+                <span class="required">*</span></label><br />
+                <input type="text" id="account" name="payment[account]" title="<?php echo $this->__("Account") ?>"                 
+                <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>
+                  class="required-entry input-text validate-number validate-length maximum-length-20 minimum-length-20"
+                  value="<?=($this->htmlEscape($this->getInfoData('account')))?$this->htmlEscape($this->getInfoData('account')):$arPreviousOrderPaymentInfo['account']?>"/>
+                <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                                   
+            </div>
+        </li>
+        <li>
+            <div class="input-box">
+                <label for="payer"><?php echo $this->__('Payer') ?> <span class="required">*</span></label><br />
+                <input type="text" id="payer" name="payment[payer]" 
+                title="<?php echo $this->__("Payer") ?>" 
+                class="required-entry input-text" 
+                <?// ITEAMO . PAYMENT FORM . CORRECTION <<< ?>                  
+                  value="<?=($this->htmlEscape($this->getInfoData('payer')))?$this->htmlEscape($this->getInfoData('payer')):$arPreviousOrderPaymentInfo['payer']?>"/>
+                <?// >>> ITEAMO . PAYMENT FORM . CORRECTION ?>                
+            </div>
+        </li>
+    </ul>
+</fieldset>
