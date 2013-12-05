@@ -1,0 +1,9 @@
+.modgit/
+/media
+/var
+/app/etc/local.xml
+/REVISION
+.idea/
+sitemap.xml
+revision.html
+php_errors.log
