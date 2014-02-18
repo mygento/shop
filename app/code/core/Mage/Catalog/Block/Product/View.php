@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Catalog
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -28,9 +28,10 @@
 /**
  * Product View block
  *
- * @category   Mage
- * @package    Mage_Catalog
- * @module     Catalog
+ * @category Mage
+ * @package  Mage_Catalog
+ * @module   Catalog
+ * @author   Magento Core Team <core@magentocommerce.com>
  */
 class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstract
 {
@@ -60,7 +61,7 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
             $currentCategory = Mage::registry('current_category');
             if ($keyword) {
                 $headBlock->setKeywords($keyword);
-            } elseif($currentCategory) {
+            } elseif ($currentCategory) {
                 $headBlock->setKeywords($product->getName());
             }
             $description = $product->getMetaDescription();
@@ -70,7 +71,7 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
                 $headBlock->setDescription(Mage::helper('core/string')->substr($product->getDescription(), 0, 255));
             }
             if ($this->helper('catalog/product')->canUseCanonicalTag()) {
-                $params = array('_ignore_category'=>true);
+                $params = array('_ignore_category' => true);
                 $headBlock->addLinkRel('canonical', $product->getUrlModel()->getUrl($product, $params));
             }
         }
@@ -116,19 +117,19 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
             return $this->getCustomAddToCartUrl();
         }
 
-        if ($this->getRequest()->getParam('wishlist_next')){
+        if ($this->getRequest()->getParam('wishlist_next')) {
             $additional['wishlist_next'] = 1;
         }
 
         $addUrlKey = Mage_Core_Controller_Front_Action::PARAM_NAME_URL_ENCODED;
-        $addUrlValue = Mage::getUrl('*/*/*', array('_use_rewrite' => true, '_current' => false));
+        $addUrlValue = Mage::getUrl('*/*/*', array('_use_rewrite' => true, '_current' => true));
         $additional[$addUrlKey] = Mage::helper('core')->urlEncode($addUrlValue);
 
         return $this->helper('checkout/cart')->getAddUrl($product, $additional);
     }
 
     /**
-     * Get JSON encripted configuration array which can be used for JS dynamic
+     * Get JSON encoded configuration array which can be used for JS dynamic
      * price calculation depending on product options
      *
      * @return string
@@ -141,20 +142,36 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
         }
 
         $_request = Mage::getSingleton('tax/calculation')->getRateRequest(false, false, false);
-        $_request->setProductClassId($this->getProduct()->getTaxClassId());
+        /* @var $product Mage_Catalog_Model_Product */
+        $product = $this->getProduct();
+        $_request->setProductClassId($product->getTaxClassId());
         $defaultTax = Mage::getSingleton('tax/calculation')->getRate($_request);
 
         $_request = Mage::getSingleton('tax/calculation')->getRateRequest();
-        $_request->setProductClassId($this->getProduct()->getTaxClassId());
+        $_request->setProductClassId($product->getTaxClassId());
         $currentTax = Mage::getSingleton('tax/calculation')->getRate($_request);
 
-        $_regularPrice = $this->getProduct()->getPrice();
-        $_finalPrice = $this->getProduct()->getFinalPrice();
-        $_priceInclTax = Mage::helper('tax')->getPrice($this->getProduct(), $_finalPrice, true);
-        $_priceExclTax = Mage::helper('tax')->getPrice($this->getProduct(), $_finalPrice);
-
+        $_regularPrice = $product->getPrice();
+        $_finalPrice = $product->getFinalPrice();
+        if ($product->getTypeId() == Mage_Catalog_Model_Product_Type::TYPE_BUNDLE) {
+            $_priceInclTax = Mage::helper('tax')->getPrice($product, $_finalPrice, true,
+                null, null, null, null, null, false);
+            $_priceExclTax = Mage::helper('tax')->getPrice($product, $_finalPrice, false,
+                null, null, null, null, null, false);
+        } else {
+            $_priceInclTax = Mage::helper('tax')->getPrice($product, $_finalPrice, true);
+            $_priceExclTax = Mage::helper('tax')->getPrice($product, $_finalPrice);
+        }
+        $_tierPrices = array();
+        $_tierPricesInclTax = array();
+        foreach ($product->getTierPrice() as $tierPrice) {
+            $_tierPrices[] = Mage::helper('core')->currency($tierPrice['website_price'], false, false);
+            $_tierPricesInclTax[] = Mage::helper('core')->currency(
+                Mage::helper('tax')->getPrice($product, (int)$tierPrice['website_price'], true),
+                false, false);
+        }
         $config = array(
-            'productId'           => $this->getProduct()->getId(),
+            'productId'           => $product->getId(),
             'priceFormat'         => Mage::app()->getLocale()->getJsPriceFormat(),
             'includeTax'          => Mage::helper('tax')->priceIncludesTax() ? 'true' : 'false',
             'showIncludeTax'      => Mage::helper('tax')->displayPriceIncludingTax(),
@@ -173,14 +190,17 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
             'idSuffix'            => '_clone',
             'oldPlusDisposition'  => 0,
             'plusDisposition'     => 0,
+            'plusDispositionTax'  => 0,
             'oldMinusDisposition' => 0,
             'minusDisposition'    => 0,
+            'tierPrices'          => $_tierPrices,
+            'tierPricesInclTax'   => $_tierPricesInclTax,
         );
 
         $responseObject = new Varien_Object();
-        Mage::dispatchEvent('catalog_product_view_config', array('response_object'=>$responseObject));
+        Mage::dispatchEvent('catalog_product_view_config', array('response_object' => $responseObject));
         if (is_array($responseObject->getAdditionalOptions())) {
-            foreach ($responseObject->getAdditionalOptions() as $option=>$value) {
+            foreach ($responseObject->getAdditionalOptions() as $option => $value) {
                 $config[$option] = $value;
             }
         }
@@ -228,8 +248,7 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
      * Get default qty - either as preconfigured, or as 1.
      * Also restricts it by minimal qty.
      *
-     * @param null|Mage_Catalog_Model_Product
-     *
+     * @param null|Mage_Catalog_Model_Product $product
      * @return int|float
      */
     public function getProductDefaultQty($product = null)
@@ -246,5 +265,15 @@ class Mage_Catalog_Block_Product_View extends Mage_Catalog_Block_Product_Abstrac
         }
 
         return $qty;
+    }
+
+    /**
+     * Retrieve block cache tags
+     *
+     * @return array
+     */
+    public function getCacheTags()
+    {
+        return array_merge(parent::getCacheTags(), $this->getProduct()->getCacheIdTags());
     }
 }

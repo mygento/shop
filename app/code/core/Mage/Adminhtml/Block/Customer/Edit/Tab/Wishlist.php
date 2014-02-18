@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -41,6 +41,7 @@ class Mage_Adminhtml_Block_Customer_Edit_Tab_Wishlist extends Mage_Adminhtml_Blo
      */
 
     protected $_defaultSort = 'added_at';
+
     /**
      * Parent template name
      *
@@ -79,20 +80,28 @@ class Mage_Adminhtml_Block_Customer_Edit_Tab_Wishlist extends Mage_Adminhtml_Blo
     }
 
     /**
+     * Create customer wishlist item collection
+     *
+     * @return Mage_Wishlist_Model_Resource_Item_Collection
+     */
+    protected function _createCollection()
+    {
+        return Mage::getModel('wishlist/item')->getCollection()
+            ->setWebsiteId($this->_getCustomer()->getWebsiteId())
+            ->setCustomerGroupId($this->_getCustomer()->getGroupId());
+    }
+
+    /**
      * Prepare customer wishlist product collection
      *
      * @return Mage_Adminhtml_Block_Customer_Edit_Tab_Wishlist
      */
     protected function _prepareCollection()
     {
-        $wishlist = Mage::getModel('wishlist/wishlist');
-        $collection = $wishlist->loadByCustomer($this->_getCustomer())
-            ->setSharedStoreIds($wishlist->getSharedStoreIds(false))
-            ->getItemCollection()
+        $collection = $this->_createCollection()->addCustomerIdFilter($this->_getCustomer()->getId())
             ->resetSortOrder()
             ->addDaysInWishlist()
             ->addStoreData();
-
         $this->setCollection($collection);
 
         return parent::_prepareCollection();
@@ -106,13 +115,13 @@ class Mage_Adminhtml_Block_Customer_Edit_Tab_Wishlist extends Mage_Adminhtml_Blo
     protected function _prepareColumns()
     {
         $this->addColumn('product_name', array(
-            'header'    => Mage::helper('catalog')->__('Product name'),
+            'header'    => Mage::helper('catalog')->__('Product Name'),
             'index'     => 'product_name',
             'renderer'  => 'adminhtml/customer_edit_tab_view_grid_renderer_item'
         ));
 
         $this->addColumn('description', array(
-            'header'    => Mage::helper('wishlist')->__('User description'),
+            'header'    => Mage::helper('wishlist')->__('User Description'),
             'index'     => 'description',
             'renderer'  => 'adminhtml/customer_edit_tab_wishlist_grid_renderer_description'
         ));

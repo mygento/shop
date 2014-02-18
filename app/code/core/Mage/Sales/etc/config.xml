@@ -21,14 +21,14 @@
  *
  * @category    Mage
  * @package     Mage_Sales
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
 <config>
     <modules>
         <Mage_Sales>
-            <version>1.6.0.3</version>
+            <version>1.6.0.8</version>
         </Mage_Sales>
     </modules>
     <global>
@@ -622,6 +622,12 @@
                 <discount_amount>
                     <to_quote_address_shipping>*</to_quote_address_shipping>
                 </discount_amount>
+                <discount_description>
+                    <to_invoice>*</to_invoice>
+                </discount_description>
+                <discount_description>
+                    <to_cm>*</to_cm>
+                </discount_description>
                 <shipping_amount>
                     <to_quote_address_shipping>*</to_quote_address_shipping>
                 </shipping_amount>
@@ -1368,18 +1374,25 @@
                     </subtotal>
                     <discount>
                         <class>sales/order_invoice_total_discount</class>
+                        <after>subtotal</after>
                     </discount>
                     <shipping>
                         <class>sales/order_invoice_total_shipping</class>
+                        <after>subtotal,discount</after>
+                        <before>grand_total,tax</before>
                     </shipping>
                     <tax>
                         <class>sales/order_invoice_total_tax</class>
+                        <after>subtotal</after>
                     </tax>
                     <grand_total>
                         <class>sales/order_invoice_total_grand</class>
+                        <after>shipping</after>
                     </grand_total>
                     <cost_total>
                         <class>sales/order_invoice_total_cost</class>
+                        <after>discount</after>
+                        <before>grand_total</before>
                     </cost_total>
                 </totals>
             </order_invoice>
@@ -1390,18 +1403,25 @@
                     </subtotal>
                     <shipping>
                         <class>sales/order_creditmemo_total_shipping</class>
+                        <after>subtotal,discount</after>
+                        <before>grand_total,tax</before>
                     </shipping>
                     <tax>
                         <class>sales/order_creditmemo_total_tax</class>
+                        <after>subtotal</after>
                     </tax>
                     <discount>
                         <class>sales/order_creditmemo_total_discount</class>
+                        <after>subtotal</after>
                     </discount>
                     <grand_total>
                         <class>sales/order_creditmemo_total_grand</class>
+                        <after>shipping,subtotal</after>
                     </grand_total>
                     <cost_total>
                         <class>sales/order_creditmemo_total_cost</class>
+                        <after>discount</after>
+                        <before>grand_total</before>
                     </cost_total>
                 </totals>
             </order_creditmemo>
@@ -1429,7 +1449,8 @@
                 <discount translate="title">
                     <title>Discount</title>
                     <source_field>discount_amount</source_field>
-                    <amount_prefix>-</amount_prefix>
+                    <amount_prefix></amount_prefix>
+                    <title_source_field>discount_description</title_source_field>
                     <font_size>7</font_size>
                     <display_zero>0</display_zero>
                     <sort_order>200</sort_order>
@@ -1464,6 +1485,16 @@
                 </grand_total>
             </totals>
         </pdf>
+        <events>
+            <sales_order_place_after>
+                <observers>
+                    <sales_vat_request_params_order_comment>
+                        <class>sales/observer</class>
+                        <method>addVatRequestParamsOrderComment</method>
+                    </sales_vat_request_params_order_comment>
+                </observers>
+            </sales_order_place_after>
+        </events>
     </global>
     <frontend>
         <secure_url>
@@ -1501,6 +1532,22 @@
             </updates>
         </layout>
         <events>
+            <sales_quote_address_collect_totals_before>
+                <observers>
+                    <sales_customer_validate_vat_number>
+                        <class>sales/observer</class>
+                        <method>changeQuoteCustomerGroupId</method>
+                    </sales_customer_validate_vat_number>
+                </observers>
+            </sales_quote_address_collect_totals_before>
+            <sales_quote_address_collect_totals_after>
+                <observers>
+                    <sales_customer_validate_vat_number>
+                        <class>sales/observer</class>
+                        <method>restoreQuoteCustomerGroupId</method>
+                    </sales_customer_validate_vat_number>
+                </observers>
+            </sales_quote_address_collect_totals_after>
             <sales_quote_collect_totals_after>
                 <observers>
                     <catalog_msrp>
@@ -1537,14 +1584,6 @@
                     </sales_quote_observer>
                 </observers>
             </catalog_product_delete_before>
-            <catalogrule_before_apply>
-                <observers>
-                    <sales_quote_observer>
-                        <class>sales/observer</class>
-                        <method>markQuotesRecollectOnCatalogRules</method>
-                    </sales_quote_observer>
-                </observers>
-            </catalogrule_before_apply>
             <catalogrule_after_apply>
                 <observers>
                     <sales_quote_observer>
@@ -1597,13 +1636,6 @@
         </events>
     </adminhtml>
     <default>
-        <payment>
-            <googlecheckout>
-                <active>1</active>
-                <model>googlecheckout/payment</model>
-                <title>Google Checkout</title>
-            </googlecheckout>
-        </payment>
         <sales>
             <totals_sort>
                 <discount>20</discount>

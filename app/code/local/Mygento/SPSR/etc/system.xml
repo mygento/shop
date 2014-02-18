@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <sections>
+        <carriers>
+            <groups>
+                <spsr translate="label" module="spsr">
+                    <label>Mygento SPSR (with custom observer)</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>99</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <!--основная секция-->
+                        <versioninfo>
+                            <frontend_model>spsr/version</frontend_model>
+                            <sort_order>0</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </versioninfo>
+                        <active translate="label">
+                            <label>Enabled</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </active>
+                        <name translate="label">
+                            <label>Method Name</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </name>
+                        <title translate="label">
+                            <label>Title</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </title>
+                        <login translate="label">
+                            <label>SPSR login</label>
+                            <frontend_type>obscure</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
+                            <sort_order>4</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </login>
+                        <password translate="label">
+                            <label>SPSR password</label>
+                            <frontend_type>obscure</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
+                            <sort_order>5</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </password>
+                        <ikn translate="label">
+                            <label>SPSR IKN</label>
+                            <frontend_type>obscure</frontend_type>
+                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
+                            <sort_order>6</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </ikn>
+                        <sid translate="label">
+                            <label>Enable contract</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>7</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </sid>
+                        <!--конец основной секции-->
+                       
+                        <!--секция для расчета стоимости доставки--> 
+                        <heading_1 translate="label">
+                            <label>Секция для расчета стоимости доставки</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>9</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </heading_1>                 
+                        <origincity translate="label">
+                            <label>Origin city</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </origincity>
+                        <itemdesc translate="label">
+                            <label>Характер груза</label>
+                            <frontend_type>select</frontend_type>
+                            <sort_order>11</sort_order>
+                            <comment>Описание вложимого</comment>
+                            <source_model>spsr/description</source_model> 
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </itemdesc>
+                        <amountcheck translate="label">
+                            <label>Amount Check</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/amountcheck</source_model> 
+                            <comment>Значение Amount по страхованию объявления или тариф за объявленную стоимость</comment>
+                            <sort_order>12</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </amountcheck> 
+                        <sms translate="label">
+                            <label>SMS</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>СМС оповещение отправителя</comment>
+                            <sort_order>13</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </sms>
+                        <smssender translate="label">
+                            <label>Sender SMS number</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>14</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <sms>1</sms>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                            <comment>Номер телефона для SMS-оповещения Отправителя</comment>
+                        </smssender>
+                        <sms2 translate="label">
+                            <label>SMS2</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>СМС оповещение получателя</comment>
+                            <sort_order>15</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </sms2>
+                        <plattype translate="label">
+                            <label>Payer</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/plattype</source_model> 
+                            <sort_order>16</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </plattype>
+                        <specificerrmsg translate="label">
+                            <label>Displayed Error Message</label>
+                            <frontend_type>textarea</frontend_type>
+                            <sort_order>18</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </specificerrmsg>
+                        <isfree translate="label">
+                            <label>Shipping is free</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>19</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </isfree>
+                        <!-- конец секции расчета стоимости доставки-->
+                        
+                        <!-- секция для отправки заказа в СПСР-->
+                        <heading_2 translate="label">
+                            <label>Секция для отправки заказа в СПСР</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </heading_2>      
+                        <itemwhl translate="label">
+                            <label>Enable using product width height length</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>21</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Иначе товары будут отправляться в СПСР без указания габаритов</comment>
+                        </itemwhl>
+                        <itemparam translate="label">
+                            <label>Item param multiplying</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/param</source_model> 
+                            <sort_order>22</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                        </itemparam>
+                        <itemlength translate="label">
+                            <label>Attribute code for length (in cm)</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/entity_attribute_source_list</source_model>
+                            <sort_order>23</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </itemlength>
+                        <itemwidth translate="label">
+                            <label>Attribute code for width (in cm)</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/entity_attribute_source_list</source_model>
+                            <sort_order>24</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </itemwidth>
+                        <itemheight translate="label">
+                            <label>Attribute code for height (in cm)</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/entity_attribute_source_list</source_model>
+                            <sort_order>25</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </itemheight>
+                        <onelength translate="label">
+                            <label>One length</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>26</sort_order>
+                            <comment>in cm</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </onelength>
+                        <onewidth translate="label">
+                            <label>One width</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>27</sort_order>
+                            <comment>in cm</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </onewidth>
+                        <oneheight translate="label">
+                            <label>One height</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>28</sort_order>
+                            <comment>in cm</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <itemwhl>1</itemwhl>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </oneheight>
+                        <cashondelivery translate="label">
+                            <label>Cash on delivery method name</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/cash</source_model> 
+                            <sort_order>29</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </cashondelivery>
+                        <senderzip translate="label">
+                            <label>Sender zip</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>30</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </senderzip>
+                        <senderregion translate="label">
+                            <label>Sender region</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>30</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </senderregion>
+                        <sendercity translate="label">
+                            <label>Sender city</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>31</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </sendercity>
+                        <senderaddress translate="label">
+                            <label>Sender address</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>32</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </senderaddress>
+                        <sendercompname translate="label">
+                            <label>Sender company name</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>33</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </sendercompname>
+                        <sendercontname translate="label">
+                            <label>Sender contact name</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>34</sort_order>
+                            <comment>текст в формате: номер телефонас "8" и кодом города</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </sendercontname>
+                        <senderphone translate="label">
+                            <label>Sender phone</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>35</sort_order>
+                            <comment></comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </senderphone>
+                        <pickup translate="label">
+                            <label>Pickup type</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/pickup</source_model> 
+                            <sort_order>36</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </pickup>
+                        <deliverytime translate="label">
+                            <label>Delivery time</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>spsr/deliverytime</source_model> 
+                            <sort_order>37</sort_order>
+                            <comment>Окончательное время будет согласовано в с получателем.</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </deliverytime>
+                        <addtryon translate="label">
+                            <label>TryOn</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Услуга доступна только для определенных сервисов</comment>
+                            <sort_order>50</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </addtryon>
+                        <addpart translate="label">
+                            <label>PartDelivery</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Услуга доступна только для определенных сервисов</comment>
+                            <sort_order>51</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </addpart>
+                        <addbyhand translate="label">
+                            <label>ByHand</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Услуга доступна только для определенных сервисов</comment>
+                            <sort_order>52</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </addbyhand>
+                        <addcod translate="label">
+                            <label>PaidByReceiver</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Услуга доступна только для определенных сервисов</comment>
+                            <sort_order>53</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </addcod>
+                        <addad translate="label">
+                            <label>AgreedDelivery</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Услуга доступна только для определенных сервисов</comment>
+                            <sort_order>54</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </addad>
+                        <range_current translate="label">
+                            <label>Code range start</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>55</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Если вы только что получили диапазон ШК от СПСР, то сюда необходимо вписать начальное значение. После сохранения необходимо обновить инкремент ШК. Для этого есть кнопка ниже.</comment>
+                        </range_current>
+                        <check translate="label">
+                            <label>Update BC increment</label>
+                            <frontend_type>button</frontend_type>
+                            <frontend_model>spsr/adminhtml_system_config_form_button</frontend_model>
+                            <sort_order>56</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>
+                                <model>spsr/comment</model>
+                            </comment>
+                        </check>
+                        <range_end translate="label">
+                            <label>Code range end</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>57</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Если вы только что получили диапазон ШК от СПСР, то сюда необходимо вписать конечное значение.</comment>
+                        </range_end>
+
+                        <!--конец секции для отправки заказа в СПСР-->
+                        
+                        <!--техническая секция-->
+                        <heading_3 translate="label">
+                            <label>Техническая секция</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>80</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </heading_3> 
+                        <jquery translate="label">
+                            <label>Enable internal jQuery + UI</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Enable internally jQuery for autocomplete. If you already have jQuery enabled in your store, choose NO</comment>
+                            <sort_order>81</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </jquery>
+                        <json translate="label">
+                            <label>Enable Json helper</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Autocomplete helper for billing &amp; shipping city inputs</comment>
+                            <sort_order>82</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </json>
+                        <limit translate="label">
+                            <label>Limit for autocomplete helper</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>83</sort_order>
+                            <comment>Limit count of autocomplete variants</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </limit>
+                        <emptyevent translate="label">
+                            <label>Do not send calculation to event</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Send empty shipping/rate_result to event</comment>
+                            <sort_order>84</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </emptyevent>
+                        <!--конец технической секции-->
+                        
+                        <!--секция дебага-->
+                        <debug translate="label">
+                            <label>Debug</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>100</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </debug>
+                        <!--конец секции дебага-->
+                    </fields>
+                </spsr>
+            </groups>
+        </carriers>
+    </sections>
+</config>

@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Checkout
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -31,7 +31,8 @@
  */
 class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
 {
-    const XML_PATH_GUEST_CHECKOUT           = 'checkout/options/guest_checkout';
+    const XML_PATH_GUEST_CHECKOUT = 'checkout/options/guest_checkout';
+    const XML_PATH_CUSTOMER_MUST_BE_LOGGED = 'checkout/options/customer_must_be_logged';
 
     protected $_agreements = null;
 
@@ -92,6 +93,7 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
 
     /**
      * Get sales item (quote item, order item etc) price including tax based on row total and tax amount
+     * excluding weee tax
      *
      * @param   Varien_Object $item
      * @return  float
@@ -102,8 +104,9 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
             return $item->getPriceInclTax();
         }
         $qty = ($item->getQty() ? $item->getQty() : ($item->getQtyOrdered() ? $item->getQtyOrdered() : 1));
-        $price = (floatval($qty)) ? ($item->getRowTotal() + $item->getTaxAmount())/$qty : 0;
-        return Mage::app()->getStore()->roundPrice($price);
+
+        //Unit price is rowtotal/qty
+        return $qty > 0 ? $this->getSubtotalInclTax($item)/$qty :0;
     }
 
     /**
@@ -117,20 +120,46 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
         if ($item->getRowTotalInclTax()) {
             return $item->getRowTotalInclTax();
         }
-        $tax = $item->getTaxAmount();
+        //Since tax amount contains weee tax
+        $tax = $item->getTaxAmount() + $item->getDiscountTaxCompensation()
+            - $this->_getWeeeHelper()->getTotalRowTaxAppliedForWeeeTax($item);;
+
         return $item->getRowTotal() + $tax;
     }
 
+    /**
+     * Returns the helper for weee
+     *
+     * @return Mage_Weee_Helper_Data
+     */
+    protected function _getWeeeHelper()
+    {
+        return Mage::helper('weee');
+    }
+
+    /**
+     * Get the base price of the item including tax , excluding weee
+     *
+     * @param Varien_Object $item
+     * @return float
+     */
     public function getBasePriceInclTax($item)
     {
         $qty = ($item->getQty() ? $item->getQty() : ($item->getQtyOrdered() ? $item->getQtyOrdered() : 1));
-        $price = (floatval($qty)) ? ($item->getBaseRowTotal() + $item->getBaseTaxAmount())/$qty : 0;
-        return Mage::app()->getStore()->roundPrice($price);
+
+        return $qty > 0 ? $this->getBaseSubtotalInclTax($item) / $qty : 0;
     }
 
+    /**
+     * Get sales item (quote item, order item etc) row total price including tax excluding wee
+     *
+     * @param Varien_Object $item
+     * @return float
+     */
     public function getBaseSubtotalInclTax($item)
     {
-        $tax = ($item->getBaseTaxBeforeDiscount() ? $item->getBaseTaxBeforeDiscount() : $item->getBaseTaxAmount());
+        $tax = $item->getBaseTaxAmount() + $item->getBaseDiscountTaxCompensation()
+            - $this->_getWeeeHelper()->getBaseTotalRowTaxAppliedForWeeeTax($item);
         return $item->getBaseRowTotal()+$tax;
     }
 
@@ -190,32 +219,32 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
         foreach ($checkout->getAllVisibleItems() as $_item) {
             /* @var $_item Mage_Sales_Model_Quote_Item */
             $items .= $_item->getProduct()->getName() . '  x '. $_item->getQty() . '  '
-                    . $checkout->getStoreCurrencyCode() . ' '
-                    . $_item->getProduct()->getFinalPrice($_item->getQty()) . "\n";
+                . $checkout->getStoreCurrencyCode() . ' '
+                . $_item->getProduct()->getFinalPrice($_item->getQty()) . "\n";
         }
         $total = $checkout->getStoreCurrencyCode() . ' ' . $checkout->getGrandTotal();
 
         foreach ($sendTo as $recipient) {
             $mailTemplate->setDesignConfig(array('area'=>'frontend', 'store'=>$checkout->getStoreId()))
                 ->sendTransactional(
-                    $template,
-                    Mage::getStoreConfig('checkout/payment_failed/identity', $checkout->getStoreId()),
-                    $recipient['email'],
-                    $recipient['name'],
-                    array(
-                        'reason' => $message,
-                        'checkoutType' => $checkoutType,
-                        'dateAndTime' => Mage::app()->getLocale()->date(),
-                        'customer' => $checkout->getCustomerFirstname() . ' ' . $checkout->getCustomerLastname(),
-                        'customerEmail' => $checkout->getCustomerEmail(),
-                        'billingAddress' => $checkout->getBillingAddress(),
-                        'shippingAddress' => $checkout->getShippingAddress(),
-                        'shippingMethod' => Mage::getStoreConfig('carriers/'.$shippingMethod.'/title'),
-                        'paymentMethod' => Mage::getStoreConfig('payment/'.$paymentMethod.'/title'),
-                        'items' => nl2br($items),
-                        'total' => $total
-                    )
-                );
+                $template,
+                Mage::getStoreConfig('checkout/payment_failed/identity', $checkout->getStoreId()),
+                $recipient['email'],
+                $recipient['name'],
+                array(
+                    'reason' => $message,
+                    'checkoutType' => $checkoutType,
+                    'dateAndTime' => Mage::app()->getLocale()->date(),
+                    'customer' => $checkout->getCustomerFirstname() . ' ' . $checkout->getCustomerLastname(),
+                    'customerEmail' => $checkout->getCustomerEmail(),
+                    'billingAddress' => $checkout->getBillingAddress(),
+                    'shippingAddress' => $checkout->getShippingAddress(),
+                    'shippingMethod' => Mage::getStoreConfig('carriers/'.$shippingMethod.'/title'),
+                    'paymentMethod' => Mage::getStoreConfig('payment/'.$paymentMethod.'/title'),
+                    'items' => nl2br($items),
+                    'total' => $total
+                )
+            );
         }
 
         $translate->setTranslateInline(true);
@@ -252,7 +281,7 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
             && (($quote->getItemsSummaryQty() - $quote->getItemVirtualQty()) > 0)
             && ($quote->getItemsSummaryQty() <= $maximunQty)
             && !$quote->hasNominalItems()
-        ;
+            ;
     }
 
     /**
@@ -293,5 +322,15 @@ class Mage_Checkout_Helper_Data extends Mage_Core_Helper_Abstract
     public function isContextCheckout()
     {
         return (Mage::app()->getRequest()->getParam('context') == 'checkout');
+    }
+
+    /**
+     * Check if user must be logged during checkout process
+     *
+     * @return boolean
+     */
+    public function isCustomerMustBeLogged()
+    {
+        return Mage::getStoreConfigFlag(self::XML_PATH_CUSTOMER_MUST_BE_LOGGED);
     }
 }

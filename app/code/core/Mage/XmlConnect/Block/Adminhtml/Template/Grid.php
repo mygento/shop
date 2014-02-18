@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -33,10 +33,7 @@
  */
 class Mage_XmlConnect_Block_Adminhtml_Template_Grid extends Mage_Adminhtml_Block_Widget_Grid
 {
-
     /**
-     * Constructor
-     *
      * Setting grid_id, sort order and sort direction
      */
     public function __construct()
@@ -130,15 +127,15 @@ class Mage_XmlConnect_Block_Adminhtml_Template_Grid extends Mage_Adminhtml_Block
                 array(
                     'caption'   => $this->__('Preview'),
                     'url'       => array(
-                        'base'  => '*/*/previewTemplate'
+                        'base' => '*/*/previewTemplate'
                     ),
-                    'popup'   => true,
+                    'popup'     => true,
                     'field'     => 'id'
                 ),
                 array(
                     'caption'   => $this->__('Queue Message'),
                     'url'       => array(
-                        'base'      => '*/*/queueMessage',
+                        'base' => '*/*/queueMessage',
                     ),
                     'field'     => 'template_id'
                 ),

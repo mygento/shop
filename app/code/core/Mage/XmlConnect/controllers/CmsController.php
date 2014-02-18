@@ -20,21 +20,23 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * XmlConnect cms page controller
  *
- * @author  Magento Core Team <core@magentocommerce.com>
+ * @category    Mage
+ * @package     Mage_Xmlconnect
+ * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Mage_XmlConnect_CmsController extends Mage_XmlConnect_Controller_Action
 {
     /**
      * Declare content type header
      *
-     * @return void
+     * @return null
      */
     public function preDispatch()
     {
@@ -45,11 +47,38 @@ class Mage_XmlConnect_CmsController extends Mage_XmlConnect_Controller_Action
     /**
      * Category list
      *
-     * @return void
+     * @return null
      */
     public function pageAction()
     {
         $this->loadLayout(false);
         $this->renderLayout();
+    }
+
+    /**
+     * 3d secure authentication request page
+     *
+     * @return null
+     */
+    public function sentinelSecureAction()
+    {
+        try {
+            $method = Mage::getSingleton('checkout/session')->getQuote()->getPayment()->getMethodInstance();
+            if ($method->getIsCentinelValidationEnabled()) {
+                $centinel = $method->getCentinelValidator();
+                if ($centinel && $centinel->shouldAuthenticate()) {
+                    /** @var $sentinelBlock Mage_Centinel_Block_Authentication */
+                    $sentinelBlock = $this->getLayout()->addBlock('centinel/authentication', 'centinel.frame')
+                        ->setTemplate('xmlconnect/centinel/authentication.phtml');
+                    $this->getResponse()->setBody($sentinelBlock->toHtml());
+                    return;
+                }
+            }
+        } catch (Mage_Core_Exception $e) {
+            $this->getResponse()->setBody($e->getMessage());
+        } catch (Exception $e) {
+            $this->getResponse()->setBody($e->getMessage());
+            Mage::logException($e);
+        }
     }
 }

@@ -308,7 +308,7 @@ class Varien_Data_Form_Element_Editor extends Varien_Data_Form_Element_Textarea
         $html.= isset($data['style']) ? ' style="'.$data['style'].'"' : '';
         $html.= isset($data['id']) ? ' id="'.$data['id'].'"' : '';
         $html.= '>';
-        $html.= isset($data['title']) ? '<span>'.$data['title'].'</span>' : '';
+        $html.= isset($data['title']) ? '<span><span><span>'.$data['title'].'</span></span></span>' : '';
         $html.= '</button>';
 
         return $html;
@@ -364,7 +364,7 @@ class Varien_Data_Form_Element_Editor extends Varien_Data_Form_Element_Textarea
     public function translate($string)
     {
         $translator = $this->getConfig('translator');
-        if (is_object($translator) && is_callable(array($translator, '__'))) {
+        if (method_exists($translator, '__')) {
             $result = $translator->__($string);
             if (is_string($result)) {
                 return $result;

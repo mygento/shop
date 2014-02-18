@@ -1,0 +1,86 @@
+<?php if ($this->isShippedBySpsr()): ?> 
+    <div class="entry-edit">
+        <div class="entry-edit-head">
+            <h4 class="icon-head head-products">Позиции накладной в СПСР</h4>
+        </div>
+        <div class="grid np">
+            <div class="hor-scroll">
+                <?php echo $this->getPiecesTable(); ?>
+            </div>
+        </div>
+        <p class="form-buttons" style="padding-left: 5px;">
+            <?php if ($this->getOrder()->canShip()): ?>
+                <?php
+                echo $this->getLayout()->createBlock('adminhtml/widget_button')
+                        ->setData(array(
+                            'label'=>Mage::helper('spsr')->__('Отправить заказ в СПСР'),
+                            'onclick'=>'trackingSpsr.click(\''.Mage::getUrl('spsr/index/send/',array('_secure'=>true,'orderid'=>Mage::helper('spsr')->encodeid($this->getOrder()->getIncrementId()))).'\');',
+                            'class'=>'task'
+                        ))->toHtml();
+                if ($this->isCod()) {
+                    echo $this->getLayout()->createBlock('adminhtml/widget_button')
+                            ->setData(array(
+                                'label'=>Mage::helper('spsr')->__('Отправить заказ в СПСР (сумма за доставку не берется)'),
+                                'onclick'=>'trackingSpsr.click(\''.Mage::getUrl('spsr/index/send/',array('_secure'=>true,'orderid'=>Mage::helper('spsr')->encodeid($this->getOrder()->getIncrementId()),'codfree'=>1)).'\');',
+                                'class'=>'task',
+                                'style'=>'margin-left:5px;'
+                            ))->toHtml();
+                }
+                ?>
+                <script type="text/javascript">
+                    //<![CDATA[
+                    var trackingSpsr;
+                    trackingSpsr = {
+                        click: function(url) {
+                            var request = new Ajax.Request(
+                                    url,
+                                    {
+                                        method: 'get',
+                                        onComplete: this.onComplete,
+                                        onSuccess: this.onSave
+                                    }
+                            );
+                        },
+                        onComplete: function(transport) {
+                            if (transport && transport.responseText) {
+                                try {
+                                    response = eval('(' + transport.responseText + ')');
+                                }
+                                catch (e) {
+                                    response = {};
+                                }
+                            }
+                            if (response.error) {
+                                if ((typeof response.message) == 'string') {
+                                    alert(response.message);
+                                } else {
+                                    if (window.billingRegionUpdater) {
+                                        billingRegionUpdater.update();
+                                    }
+                                    alert(response.message.join("\n"));
+                                }
+                                return false;
+                            }
+                            else {
+                                alert(response.status);
+                            }
+                        },
+                        onSave: function() {
+                        }
+                    }
+                    //]]>
+                </script>
+            <?php endif; ?>
+            <?php
+            echo $this->getLayout()->createBlock('adminhtml/widget_button')
+                    ->setData(array(
+                        'label'=>Mage::helper('spsr')->__('Распечатать ШК для посылки'),
+                        'onclick'=>'window.open(\''.Mage::getUrl('spsr/index/print/',array('_secure'=>true,'orderid'=>$this->getOrder()->getIncrementId())).'\')',
+                        'class'=>'task'
+                    ))->toHtml();
+            ?>
+        </p>
+    </div>
+<?php else: ?>
+    <p><?php echo $this->__('This order can`t be shipped via SPSR'); ?></p>
+<?php endif; ?>

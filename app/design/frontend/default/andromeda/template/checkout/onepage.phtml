@@ -28,88 +28,86 @@
 
 <?// ITEAMO . NEW DESIGN <<< ?>
 <style>
-html, body {height: 100%}
-#globalheader, #globalheader * {
-  background:none !important;
-  background-image:none !important;
-  border:none !important;
-}
-#globalheader #globalnav li * {
-  display:none !important; 
-}
-#globalheader #globalnav li.gn-shop a span {
-  display:none !important;
-}
-#globalheader #globalnav li.gn-home {
-  display:block !important;
-  background:transparent url(/skin/frontend/default/andromeda/images/logo_email.gif) no-repeat left top !important;
-  margin-top:40px;
-  width:500px !important;
-  z-index:100000;
-}
-#globalheader #globalnav li.gn-home a {
-  display:block !important;  
-  z-index:100000;
-}
-.wrapper .header * {
-  display:none !important;
-}
-.wrapper .middle-container {
-  display: table;
-  height:600px;
-  min-height:100%;
-  float:none;
-  clear:both;
-  zoom:1;  
-}
-.wrapper .footer-container {
-  display:table;
-  position: absolute;
-  bottom:0px;
-  width:95% !important;
-  overflow: hidden;  
-}
-.wrapper .footer-container .left_col {
-  width:95% !important;
-  overflow: hidden;
-  margin-left:-10%;
-}
-.wrapper .footer-container * {
-  overflow: hidden;
-  float: none;
-  overflow: hidden;
-  text-align:center;
-}
+    html, body {height: 100%}
+    #globalheader, #globalheader * {
+        background:none !important;
+        background-image:none !important;
+        border:none !important;
+    }
+    #globalheader #globalnav li * {
+        display:none !important; 
+    }
+    #globalheader #globalnav li.gn-shop a span {
+        display:none !important;
+    }
+    #globalheader #globalnav li.gn-home {
+        display:block !important;
+        background:transparent url(/skin/frontend/default/andromeda/images/logo_email.gif) no-repeat left top !important;
+        margin-top:40px;
+        width:500px !important;
+        z-index:100000;
+    }
+    #globalheader #globalnav li.gn-home a {
+        display:block !important;  
+        z-index:100000;
+    }
+    .wrapper .header * {
+        display:none !important;
+    }
+    .wrapper .middle-container {
+        display: table;
+        height:650px;
+        min-height:100%;
+        float:none;
+        clear:both;
+        zoom:1;  
+    }
+    .wrapper .footer-container {
+        display:table;
+        bottom:0px;
+        width:95% !important;
+        overflow: hidden;  
+
+    }
+    .wrapper .footer-container .footer{
+        border-top: 1px solid #C2C1C1;
+        padding-top:20px;
+    }
+    .wrapper .footer-container * {
+        overflow: hidden;
+        margin: 0 auto;
+        text-align:center;
+    }
 </style>
 <style>
-.control * {
-  vertical-align: middle;
-}
-.control input {
-  margin-right:5px;
-}
-label {
-  font-weight:bold !important; 
-}
-.col2-set {
-  padding:0px !important;
-}
-.one-page-checkout a.back {
-  margin-left:-5px;
-}
-p.required {
-  margin:10px auto;
-}
-.group-select li .input-text {
-  width: 250px;
-}
-.group-select li .input-box .input-text, .group-select li .input-box textarea {
-  width: 250px !important;
-}
-.group-select li .input-box select {
-  padding: 2px;
-  width: 250px !important;
-}
+    .control * {
+        vertical-align: middle;
+    }
+    .control input {
+        margin-right:5px;
+    }
+    label {
+        font-weight:bold !important; 
+    }
+    .col2-set {
+        padding:0px !important;
+    }
+    .one-page-checkout a.back {
+        margin-left:-5px;
+    }
+    p.required {
+        margin:10px auto;
+    }
+    .group-select li .input-text {
+        width: 250px;
+    }
+    .group-select li .input-box .input-text, .group-select li .input-box textarea {
+        width: 250px !important;
+    }
+    .group-select li .input-box select {
+        padding: 2px;
+        width: 250px !important;
+    }
 </style>
 <?// >>> ITEAMO . NEW DESIGN ?>
 
@@ -118,69 +116,76 @@ p.required {
 <script type="text/javascript">countryRegions = <?php echo $this->helper('directory')->getRegionJson() ?></script>
 
 <ol id="checkoutSteps" class="one-page-checkout" style="">
-<?php $i=0; foreach($this->getSteps() as $_stepId => $_stepInfo): ?>
-<?php if (!$this->getChild($_stepId) || !$this->getChild($_stepId)->isShow()): continue; endif; $i++ ?>
-    <li id="opc-<?php echo $_stepId ?>" class="section <?php echo !empty($_stepInfo['allow'])?'allow':'' ?> <?php echo !empty($_stepInfo['complete'])?'saved':'' ?>">
-        <div class="head">
-            <h3><?php echo $_stepInfo['label'] ?></h3></a>
-        </div>
-        <div id="checkout-step-<?php echo $_stepId ?>" class="box<?php if($_stepId=='shipping_method'): ?>-no-padding<?php endif; ?> a-item" style="display:none;">
-            
-            <?php echo $this->getChildHtml($_stepId, $useCache = false) ?>
-        </div>
-    </li>
+    <?php
+    $i=0;
+    foreach ($this->getSteps() as $_stepId=> $_stepInfo):
+        ?>
+        <?php
+        if (!$this->getChild($_stepId) || !$this->getChild($_stepId)->isShow()): continue;
+        endif;
+        $i++
+        ?>
+        <li id="opc-<?php echo $_stepId ?>" class="section <?php echo!empty($_stepInfo['allow']) ? 'allow' : '' ?> <?php echo!empty($_stepInfo['complete']) ? 'saved' : '' ?>">
+            <div class="head">
+                <h3><?php echo $_stepInfo['label'] ?></h3></a>
+            </div>
+            <div id="checkout-step-<?php echo $_stepId ?>" class="box<?php if ($_stepId == 'shipping_method'): ?>-no-padding<?php endif; ?> a-item" style="display:none;">
+
+    <?php echo $this->getChildHtml($_stepId,$useCache=false) ?>
+            </div>
+        </li>
 <?php endforeach ?>
 </ol>
 <script type="text/javascript">
 //<![CDATA[
     var accordion = new Accordion('checkoutSteps', '.head', true);
-    <?php if($this->getActiveStep()): ?>
-    accordion.openSection('opc-<?php echo $this->getActiveStep() ?>');
-	<?php endif ?>
-	
+<?php if ($this->getActiveStep()): ?>
+        accordion.openSection('opc-<?php echo $this->getActiveStep() ?>');
+<?php endif ?>
 
-    var checkout = new Checkout(accordion,{
+
+    var checkout = new Checkout(accordion, {
         progress: '<?php echo $this->getUrl('checkout/onepage/progress') ?>',
         review: '<?php echo $this->getUrl('checkout/onepage/review') ?>',
         saveMethod: '<?php echo $this->getUrl('checkout/onepage/saveMethod') ?>',
         failure: '<?php echo $this->getUrl('checkout/cart') ?>'}
     );
-	
-	
+
+
 //]]>
 </script>
 <?// ITEAMO . STYLES <<< ?>
 <style>
-.button {
-  padding:2px 5px;
-}
-#checkout-step-login label {  
-  padding-left:0px;
-}
-.input-box {
-  clear:both;
-}
-.buttons-set .f-left {
-  margin-right:10px;
-}
-.checkout-onepage-index .col-2-right-layout .col-main {
-  width:900px;
-}
-label {
-  cursor:pointer;
-}
-input, button {
-  cursor:pointer;
-}
-.fields .field {
-  margin-bottom:5px;
-}
-.note {
-  color:green;
-}
-p {
-  margin-bottom:5px;
-}
+    .button {
+        padding:2px 5px;
+    }
+    #checkout-step-login label {  
+        padding-left:0px;
+    }
+    .input-box {
+        clear:both;
+    }
+    .buttons-set .f-left {
+        margin-right:10px;
+    }
+    .checkout-onepage-index .col-2-right-layout .col-main {
+        width:900px;
+    }
+    label {
+        cursor:pointer;
+    }
+    input, button {
+        cursor:pointer;
+    }
+    .fields .field {
+        margin-bottom:5px;
+    }
+    .note {
+        color:green;
+    }
+    p {
+        margin-bottom:5px;
+    }
 </style>
 <?// >>> ITEAMO . STYLES ?>
 <?// >>> ITEAMO . CORRECTION ?>

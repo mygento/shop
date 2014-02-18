@@ -20,8 +20,16 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ */
+
+/**
+ * Tab design preview renderer
+ *
+ * @category     Mage
+ * @package      Mage_Xmlconnect
+ * @author       Magento Core Team <core@magentocommerce.com>
  */
 class Mage_XmlConnect_Block_Adminhtml_Mobile_Edit_Tab_Design_Preview extends Mage_Adminhtml_Block_Template
 {
@@ -58,7 +66,6 @@ class Mage_XmlConnect_Block_Adminhtml_Mobile_Edit_Tab_Design_Preview extends Mag
             } else {
                 $params = array('devtype' => $model->getType());
             }
-
         }
         return $this->getUrl('*/*/preview' . $page, $params);
     }

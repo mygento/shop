@@ -269,7 +269,7 @@ One page checkout main layout
             <action method="setTemplate"><template>page/2columns-right.phtml</template></action>
 			<remove name="header"/>
 			<block type="page/html_header" name="header_empty" as="header_empty" template="page/html/header_empty.phtml"/>
-			<remove name="footer"/>
+			
 			<block type="page/html_footer" name="footer_empty" as="footer_empty" template="page/html/footer_empty.phtml">
 				<block type="page/template_links" name="footer_links" as="footer_links" template="page/template/links.phtml">
 				<action method="addLink" translate="label title" module="customer"><label>Help</label><url>help</url><title>Help</title><prepare>true</prepare><urlParams/><position>1</position></action> 

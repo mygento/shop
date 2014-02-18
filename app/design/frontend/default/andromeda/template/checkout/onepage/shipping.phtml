@@ -117,7 +117,7 @@
             <input type="text" id="shipping:region" name="shipping[region]" value="<?php echo $this->htmlEscape($this->getAddress()->getRegion()) ?>" title="<?php echo $this->__('State/Province') ?>" class="input-text" style="display:none" /></div></li>
         <li><div class="input-box">
             <label for="shipping:postcode"><?php echo $this->__('Zip/Postal Code') ?> <span class="required">*</span></label><br />
-            <input type="text" title="<?php echo $this->__('Zip/Postal Code') ?>" name="shipping[postcode]" id="shipping:postcode" value="<?php echo $this->htmlEscape($this->getAddress()->getPostcode()) ?>" class="validate-zip-international required-entry input-text" onchange="shipping.setSameAsBilling(false);"/></div>
+            <input type="text" title="<?php echo $this->__('Zip/Postal Code') ?>" name="shipping[postcode]" id="shipping:postcode" value="<?php echo $this->htmlEscape($this->getAddress()->getPostcode()) ?>" class="validate-zip-international required-entry input-text validate-length minimum-length-6 maximum-length-6" onchange="shipping.setSameAsBilling(false);"/></div>
             <div class="input-box">
             <label for="shipping:country_id"><?php echo $this->__('Country') ?> <span class="required">*</span></label><br />
             <?php echo $this->getCountryHtmlSelect('shipping') ?>

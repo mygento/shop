@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Sales
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -265,7 +265,6 @@
  * @method Mage_Sales_Model_Order setRelationParentRealId(string $value)
  * @method string getRemoteIp()
  * @method Mage_Sales_Model_Order setRemoteIp(string $value)
- * @method string getShippingMethod()
  * @method Mage_Sales_Model_Order setShippingMethod(string $value)
  * @method string getStoreCurrencyCode()
  * @method Mage_Sales_Model_Order setStoreCurrencyCode(string $value)
@@ -348,15 +347,16 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
     /**
      * Order flags
      */
-    const ACTION_FLAG_CANCEL    = 'cancel';
-    const ACTION_FLAG_HOLD      = 'hold';
-    const ACTION_FLAG_UNHOLD    = 'unhold';
-    const ACTION_FLAG_EDIT      = 'edit';
-    const ACTION_FLAG_CREDITMEMO= 'creditmemo';
-    const ACTION_FLAG_INVOICE   = 'invoice';
-    const ACTION_FLAG_REORDER   = 'reorder';
-    const ACTION_FLAG_SHIP      = 'ship';
-    const ACTION_FLAG_COMMENT   = 'comment';
+    const ACTION_FLAG_CANCEL                    = 'cancel';
+    const ACTION_FLAG_HOLD                      = 'hold';
+    const ACTION_FLAG_UNHOLD                    = 'unhold';
+    const ACTION_FLAG_EDIT                      = 'edit';
+    const ACTION_FLAG_CREDITMEMO                = 'creditmemo';
+    const ACTION_FLAG_INVOICE                   = 'invoice';
+    const ACTION_FLAG_REORDER                   = 'reorder';
+    const ACTION_FLAG_SHIP                      = 'ship';
+    const ACTION_FLAG_COMMENT                   = 'comment';
+    const ACTION_FLAG_PRODUCTS_PERMISSION_DENIED= 'product_permission_denied';
 
     /**
      * Report date types
@@ -534,6 +534,9 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
      */
     public function canCancel()
     {
+        if (!$this->_canVoidOrder()) {
+            return false;
+        }
         if ($this->canUnhold()) {  // $this->isPaymentReview()
             return false;
         }
@@ -557,7 +560,6 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
         if ($this->getActionFlag(self::ACTION_FLAG_CANCEL) === false) {
             return false;
         }
-
         /**
          * Use only state for availability detect
          */
@@ -572,18 +574,25 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
 
     /**
      * Getter whether the payment can be voided
+     *
      * @return bool
      */
     public function canVoidPayment()
     {
+        return $this->_canVoidOrder() ? $this->getPayment()->canVoid($this->getPayment()) : false;
+    }
+
+    /**
+     * Check whether order could be canceled by states and flags
+     *
+     * @return bool
+     */
+    protected function _canVoidOrder()
+    {
         if ($this->canUnhold() || $this->isPaymentReview()) {
             return false;
         }
-        $state = $this->getState();
-        if ($this->isCanceled() || $state === self::STATE_COMPLETE || $state === self::STATE_CLOSED) {
-            return false;
-        }
-        return $this->getPayment()->canVoid(new Varien_Object);
+        return true;
     }
 
     /**
@@ -635,8 +644,9 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
         /**
          * We can have problem with float in php (on some server $a=762.73;$b=762.73; $a-$b!=0)
          * for this we have additional diapason for 0
+         * TotalPaid - contains amount, that were not rounded.
          */
-        if (abs($this->getTotalPaid() - $this->getTotalRefunded()) < .0001) {
+        if (abs($this->getStore()->roundPrice($this->getTotalPaid()) - $this->getTotalRefunded()) < .0001) {
             return false;
         }
 
@@ -755,7 +765,32 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
      */
     public function canReorder()
     {
+        return $this->_canReorder(false);
+    }
+
+    /**
+     * Check the ability to reorder ignoring the availability in stock or status of the ordered products
+     *
+     * @return bool
+     */
+    public function canReorderIgnoreSalable()
+    {
+        return $this->_canReorder(true);
+    }
+
+    /**
+     * Retrieve order reorder availability
+     *
+     * @param bool $ignoreSalable
+     * @return bool
+     */
+    protected function _canReorder($ignoreSalable = false)
+    {
         if ($this->canUnhold() || $this->isPaymentReview() || !$this->getCustomerId()) {
+            return false;
+        }
+
+        if ($this->getActionFlag(self::ACTION_FLAG_REORDER) === false) {
             return false;
         }
 
@@ -786,18 +821,14 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
             */
 
             foreach ($products as $productId) {
-                $product = Mage::getModel('catalog/product')
-                    ->setStoreId($this->getStoreId())
-                    ->load($productId);
-                if (!$product->getId() || !$product->isSalable()) {
+                    $product = Mage::getModel('catalog/product')
+                        ->setStoreId($this->getStoreId())
+                        ->load($productId);
+                }
+                if (!$product->getId() || (!$ignoreSalable && !$product->isSalable())) {
                     return false;
                 }
             }
-        }
-
-        if ($this->getActionFlag(self::ACTION_FLAG_REORDER) === false) {
-            return false;
-        }
 
         return true;
     }
@@ -952,7 +983,7 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
     /**
      * Order state protected setter.
      * By default allows to set any state. Can also update status to default or specified value
-     * РЎomplete and closed states are encapsulated intentionally, see the _checkState()
+     * Сomplete and closed states are encapsulated intentionally, see the _checkState()
      *
      * @param string $state
      * @param string|bool $status
@@ -1031,7 +1062,7 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
      *
      * @param string $comment
      * @param string $status
-     * @return Mage_Sales_Order_Status_History
+     * @return Mage_Sales_Model_Order_Status_History
      */
     public function addStatusHistoryComment($comment, $status = false)
     {
@@ -1129,7 +1160,7 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
      */
     public function registerCancellation($comment = '', $graceful = true)
     {
-        if ($this->canCancel()) {
+        if ($this->canCancel() || $this->isPaymentReview()) {
             $cancelState = self::STATE_CANCELED;
             foreach ($this->getAllItems() as $item) {
                 if ($cancelState != self::STATE_PROCESSING && $item->getQtyToRefund()) {
@@ -1209,12 +1240,8 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
      * @return string|Varien_Object
      */
     public function getShippingMethod($asObject = false)
-    {        
-        // ITEAMO . CORRECTION <<<
-          $shippingMethod = parent::getShippingMethod();
-          // $shippingMethod = $this->getData('shipping_method');
-        // >>> ITEAMO . CORRECTION
-          
+    {
+        $shippingMethod = parent::getShippingMethod();
         if (!$asObject) {
             return $shippingMethod;
         } else {
@@ -1230,6 +1257,7 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
      * Send email with order data
      *
      * @return Mage_Sales_Model_Order
+     * @throws Exception
      */
     public function sendNewOrderEmail()
     {
@@ -1238,6 +1266,13 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
         if (!Mage::helper('sales')->canSendNewOrderEmail($storeId)) {
             return $this;
         }
+
+        $emailSentAttributeValue = $this->load($this->getId())->getData('email_sent');
+        $this->setEmailSent((bool)$emailSentAttributeValue);
+        if ($this->getEmailSent()) {
+            return $this;
+        }
+
         // Get the destination email addresses to send copies to
         $copyTo = $this->_getEmails(self::XML_PATH_EMAIL_COPY_TO);
         $copyMethod = Mage::getStoreConfig(self::XML_PATH_EMAIL_COPY_METHOD, $storeId);
@@ -1249,12 +1284,9 @@ class Mage_Sales_Model_Order extends Mage_Sales_Model_Abstract
         try {
             // Retrieve specified view block from appropriate design package (depends on emulated store)
             $paymentBlock = Mage::helper('payment')->getInfoBlock($this->getPayment())
-                ->setIsSecureMode(true);               
+                ->setIsSecureMode(true);
             $paymentBlock->getMethod()->setStore($storeId);
             $paymentBlockHtml = $paymentBlock->toHtml();
-            
-
-            
         } catch (Exception $exception) {
             // Stop store emulation process
             $appEmulation->stopEnvironmentEmulation($initialEnvironmentInfo);

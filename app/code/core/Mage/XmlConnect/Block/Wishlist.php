@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -40,8 +40,8 @@ class Mage_XmlConnect_Block_Wishlist extends Mage_Wishlist_Block_Customer_Wishli
      */
     protected function _toHtml()
     {
+        /** @var Mage_XmlConnect_Model_Simplexml_Element $wishlistXmlObj */
         $wishlistXmlObj = Mage::getModel('xmlconnect/simplexml_element', '<wishlist></wishlist>');
-        $hasMoreItems = 0;
         /**
          * Apply offset and count
          */
@@ -50,6 +50,7 @@ class Mage_XmlConnect_Block_Wishlist extends Mage_Wishlist_Block_Customer_Wishli
         $count  = (int)$request->getParam('count', 0);
         $offset = $offset < 0 ? 0 : $offset;
         $count  = $count <= 0 ? 1 : $count;
+        $hasMoreItems = 0;
         if ($offset + $count < $this->getWishlistItems()->getSize()) {
             $hasMoreItems = 1;
         }
@@ -58,6 +59,9 @@ class Mage_XmlConnect_Block_Wishlist extends Mage_Wishlist_Block_Customer_Wishli
         $wishlistXmlObj->addAttribute('items_count', $this->getWishlistItemsCount());
         $wishlistXmlObj->addAttribute('has_more_items', $hasMoreItems);
 
+        $productSmallImageSize = Mage::getModel('xmlconnect/images')->getImageLimitParam('content/product_small');
+        /** @var $categoryImageHelper Mage_XmlConnect_Helper_Catalog_Product_Image */
+        $categoryImageHelper = $this->helper('xmlconnect/catalog_product_image');
         if ($this->hasWishlistItems()) {
             /**
              * @var Mage_Wishlist_Model_Mysql4_Product_Collection
@@ -67,37 +71,34 @@ class Mage_XmlConnect_Block_Wishlist extends Mage_Wishlist_Block_Customer_Wishli
                 $itemXmlObj = $wishlistXmlObj->addChild('item');
 
                 $itemXmlObj->addChild('item_id', $item->getWishlistItemId());
-
                 $itemXmlObj->addChild('entity_id', $item->getProductId());
                 $itemXmlObj->addChild('entity_type_id', $item->getProduct()->getTypeId());
-                $itemXmlObj->addChild('name', $wishlistXmlObj->xmlentities(strip_tags($item->getName())));
-                $itemXmlObj->addChild('in_stock', (int)$item->getProduct()->isInStock());
-                $itemXmlObj->addChild('is_salable', (int)$item->getProduct()->getIsSalable());
+                $itemXmlObj->addChild('name', $wishlistXmlObj->escapeXml($item->getName()));
+                $itemXmlObj->addChild('in_stock', (int)$item->getProduct()->getStockItem()->getIsInStock());
+                $itemXmlObj->addChild('is_salable', (int)$item->getProduct()->isSalable());
                 /**
                  * If product type is grouped than it has options as its grouped items
                  */
-                if ($item->getProduct()->getTypeId() == Mage_Catalog_Model_Product_Type_Grouped::TYPE_CODE) {
+                if ($item->getProduct()->getTypeId() == Mage_Catalog_Model_Product_Type_Grouped::TYPE_CODE
+                    || $item->getProduct()->getTypeId() == Mage_Catalog_Model_Product_Type_Configurable::TYPE_CODE) {
                     $item->getProduct()->setHasOptions(true);
                 }
                 $itemXmlObj->addChild('has_options', (int)$item->getProduct()->getHasOptions());
 
-                $icon = $this->helper('catalog/image')->init($item->getProduct(), 'small_image')
-                    ->resize(Mage::helper('xmlconnect/image')->getImageSizeForContent('product_small'));
+                $icon = $categoryImageHelper->init($item->getProduct(), 'small_image')
+                    ->resize($productSmallImageSize);
 
                 $iconXml = $itemXmlObj->addChild('icon', $icon);
+                $iconXml->addAttribute('modification_time', filemtime($icon->getNewFile()));
 
-                $file = Mage::helper('xmlconnect')->urlToPath($icon);
-                $iconXml->addAttribute('modification_time', filemtime($file));
-
-                $description = $wishlistXmlObj->xmlentities(strip_tags($item->getDescription()));
+                $description = $wishlistXmlObj->escapeXml($item->getDescription());
                 $itemXmlObj->addChild('description', $description);
 
-                $addedDate = $wishlistXmlObj->xmlentities($this->getFormatedDate($item->getAddedAt()));
+                $addedDate = $wishlistXmlObj->escapeXml($this->getFormatedDate($item->getAddedAt()));
                 $itemXmlObj->addChild('added_date', $addedDate);
 
                 if ($this->getChild('product_price')) {
-                    $this->getChild('product_price')->setProduct($item->getProduct())
-                        ->setProductXmlObj($itemXmlObj)
+                    $this->getChild('product_price')->setProduct($item->getProduct())->setProductXmlObj($itemXmlObj)
                         ->collectProductPrices();
                 }
 

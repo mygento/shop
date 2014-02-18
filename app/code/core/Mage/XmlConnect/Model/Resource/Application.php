@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -36,7 +36,7 @@ class Mage_XmlConnect_Model_Resource_Application extends Mage_Core_Model_Resourc
     /**
      * Constructor, setting table and index field
      *
-     * @return void
+     * @return null
      */
     protected function _construct()
     {
@@ -55,9 +55,7 @@ class Mage_XmlConnect_Model_Resource_Application extends Mage_Core_Model_Resourc
         $this->_getWriteAdapter()->update(
             $this->getMainTable(),
             array('status' => $status),
-            $this->_getWriteAdapter()->quoteInto(
-                $this->getIdFieldName() . '=?', $applicationId
-            )
+            $this->_getWriteAdapter()->quoteInto($this->getIdFieldName() . '=?', $applicationId)
         );
         return $this;
     }
@@ -92,9 +90,7 @@ class Mage_XmlConnect_Model_Resource_Application extends Mage_Core_Model_Resourc
             $this->_getWriteAdapter()->update(
                 $this->getMainTable(),
                 array('code' => $appCode . $object->getId()),
-                $this->_getWriteAdapter()->quoteInto(
-                    $this->getIdFieldName() . '=?', $object->getId()
-                )
+                $this->_getWriteAdapter()->quoteInto($this->getIdFieldName() . '=?', $object->getId())
             );
         }
         return parent::_afterSave($object);
@@ -107,16 +103,15 @@ class Mage_XmlConnect_Model_Resource_Application extends Mage_Core_Model_Resourc
      */
     public function getExistingStoreDeviceType()
     {
-        $select = $this->_getWriteAdapter()->select()
-            ->from($this->getMainTable(), array('store_id', 'type'))
-            ->group(array('store_id', 'type'))
-            ->order(array('store_id', 'type'));
+        $select = $this->_getWriteAdapter()->select()->from($this->getMainTable(), array('store_id', 'type'))
+            ->group(array('store_id', 'type'))->order(array('store_id', 'type'));
         return $this->_getReadAdapter()->fetchAll($select, array('store_id', 'type'));
     }
 
     /**
      * Update all applications "updated at" parameter with current date
      *
+     * @deprecated will remove in new release
      * @return Mage_XmlConnect_Model_Resource_Application
      */
     public function updateAllAppsUpdatedAtParameter()
@@ -125,6 +120,18 @@ class Mage_XmlConnect_Model_Resource_Application extends Mage_Core_Model_Resourc
             $this->getMainTable(),
             array('updated_at' => date('Y-m-d H:i:s'))
         );
+        return $this;
+    }
+
+    /**
+     * Update all applications "updated at" parameter with current date
+     *
+     * @param Mage_XmlConnect_Model_Application $model
+     * @return Mage_XmlConnect_Model_Resource_Application
+     */
+    public function updateUpdatedAtParameter($model)
+    {
+        $this->_getWriteAdapter()->update($this->getMainTable(), array('updated_at' => $model->getUpdatedAt()));
         return $this;
     }
 }

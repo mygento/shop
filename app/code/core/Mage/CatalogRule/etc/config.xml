@@ -21,14 +21,14 @@
  *
  * @category    Mage
  * @package     Mage_CatalogRule
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
 <config>
     <modules>
         <Mage_CatalogRule>
-            <version>1.6.0.0</version>
+            <version>1.6.0.3</version>
         </Mage_CatalogRule>
     </modules>
     <global>
@@ -52,6 +52,9 @@
                     <rule_product>
                         <table>catalogrule_product</table>
                     </rule_product>
+                    <rule_product_price_tmp>
+                        <table>catalogrule_product_price_tmp</table>
+                    </rule_product_price_tmp>
                     <rule_product_price>
                         <table>catalogrule_product_price</table>
                     </rule_product_price>
@@ -61,6 +64,12 @@
                     <rule_group_website>
                         <table>catalogrule_group_website</table>
                     </rule_group_website>
+                    <website>
+                        <table>catalogrule_website</table>
+                    </website>
+                    <customer_group>
+                        <table>catalogrule_customer_group</table>
+                    </customer_group>
                 </entities>
             </catalogrule_resource>
         </models>
@@ -143,14 +152,14 @@
                     </catalogrule>
                 </observers>
             </catalog_product_get_final_price>
-            <catalog_product_save_after>
+            <catalog_product_save_commit_after>
                 <observers>
                     <catalogrule>
                         <class>catalogrule/observer</class>
                         <method>applyAllRulesOnProduct</method>
                     </catalogrule>
                 </observers>
-            </catalog_product_save_after>
+            </catalog_product_save_commit_after>
 
             <catalog_product_import_finish_before>
                 <observers>

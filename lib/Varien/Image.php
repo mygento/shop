@@ -45,11 +45,11 @@ class Varien_Image
      * @return void
      */
     function __construct($fileName=null, $adapter=Varien_Image_Adapter::ADAPTER_GD2)
-    {        
-        $this->_getAdapter($adapter);        
+    {
+        $this->_getAdapter($adapter);
         $this->_fileName = $fileName;
-        if( isset($fileName) ) {        
-            $this->open();            
+        if( isset($fileName) ) {
+            $this->open();
         }
     }
 
@@ -60,8 +60,9 @@ class Varien_Image
      * @return void
      */
     public function open()
-    {                        
+    {
         $this->_getAdapter()->checkDependencies();
+
         if( !file_exists($this->_fileName) ) {
             throw new Exception("File '{$this->_fileName}' does not exists.");
         }

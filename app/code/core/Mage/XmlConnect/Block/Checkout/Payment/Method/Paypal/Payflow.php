@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -75,29 +75,29 @@ class Mage_XmlConnect_Block_Checkout_Payment_Method_Paypal_Payflow extends Mage_
         $formXmlObj->addAttribute('name', 'payment_form_' . $method->getCode());
         $formXmlObj->addAttribute('method', 'post');
 
-        $_ccType = $this->getInfoData('cc_type');
+        $ccType = $this->getInfoData('cc_type');
         $ccTypes = '';
 
-        foreach ($this->getCcAvailableTypes() as $_typeCode => $_typeName) {
-            if (!$_typeCode) {
+        foreach ($this->getCcAvailableTypes() as $typeCode => $_typeName) {
+            if (!$typeCode) {
                 continue;
             }
             $ccTypes .= '
-            <item' . ($_typeCode == $_ccType ? ' selected="1"' : '') . '>
+            <item' . ($typeCode == $ccType ? ' selected="1"' : '') . '>
                 <label>' . $_typeName . '</label>
-                <value>' . $_typeCode . '</value>
+                <value>' . $typeCode . '</value>
             </item>';
         }
 
         $ccMonthes = '';
 
-        $_ccExpMonth = $this->getInfoData('cc_exp_month');
+        $ccExpMonth = $this->getInfoData('cc_exp_month');
         foreach ($this->getCcMonths() as $k => $v) {
             if (!$k) {
                 continue;
             }
             $ccMonthes .= '
-            <item' . ($k == $_ccExpMonth ? ' selected="1"' : '') . '>
+            <item' . ($k == $ccExpMonth ? ' selected="1"' : '') . '>
                 <label>' . $v . '</label>
                 <value>' . ($k ? $k : '') . '</value>
             </item>';
@@ -105,13 +105,13 @@ class Mage_XmlConnect_Block_Checkout_Payment_Method_Paypal_Payflow extends Mage_
 
         $ccYears = '';
 
-        $_ccExpYear = $this->getInfoData('cc_exp_year');
+        $ccExpYear = $this->getInfoData('cc_exp_year');
         foreach ($this->getCcYears() as $k => $v) {
             if (!$k) {
                 continue;
             }
             $ccYears .= '
-            <item' . ($k == $_ccExpYear ? ' selected="1"' : '') . '>
+            <item' . ($k == $ccExpYear ? ' selected="1"' : '') . '>
                 <label>' . $v . '</label>
                 <value>' . ($k ? $k : '') . '</value>
             </item>';
@@ -119,38 +119,39 @@ class Mage_XmlConnect_Block_Checkout_Payment_Method_Paypal_Payflow extends Mage_
 
         $verification = '';
         if ($this->hasVerification()) {
-            $verification =
-            '<field name="payment[cc_cid]" type="text" label="' . $this->helper('xmlconnect')->__('Card Verification Number') . '" required="true">
-                <validators>
-                    <validator relation="payment[cc_type]" type="credit_card_svn" message="' . $this->helper('xmlconnect')->__('Card verification number is wrong') . '"/>
-                </validators>
-            </field>';
+            $verification = <<<EOT
+<field name="payment[cc_cid]" type="text" label="{$this->__('Card Verification Number')}" required="true">
+    <validators>
+        <validator relation="payment[cc_type]" type="credit_card_svn" message="{$this->__('Card verification number is wrong')}'"/>
+    </validators>
+</field>
+EOT;
         }
 
         $xml = <<<EOT
-    <fieldset>
-        <field name="payment[cc_type]" type="select" label="{$this->helper('xmlconnect')->__('Credit Card Type')}" required="true">
-            <values>
-                $ccTypes
-            </values>
-        </field>
-        <field name="payment[cc_number]" type="text" label="{$this->helper('xmlconnect')->__('Credit Card Number')}" required="true">
-            <validators>
-                <validator relation="payment[cc_type]" type="credit_card" message="{$this->helper('xmlconnect')->__('Credit card number does not match credit card type.')}"/>
-            </validators>
-        </field>
-        <field name="payment[cc_exp_month]" type="select" label="{$this->helper('xmlconnect')->__('Expiration Date - Month')}" required="true">
-            <values>
-                $ccMonthes
-            </values>
-        </field>
-        <field name="payment[cc_exp_year]" type="select" label="{$this->helper('xmlconnect')->__('Expiration Date - Year')}" required="true">
-            <values>
-                $ccYears
-            </values>
-        </field>
-        $verification
-    </fieldset>
+<fieldset>
+    <field name="payment[cc_type]" type="select" label="{$this->__('Credit Card Type')}" required="true">
+        <values>
+            $ccTypes
+        </values>
+    </field>
+    <field name="payment[cc_number]" type="text" label="{$this->__('Credit Card Number')}" required="true">
+        <validators>
+            <validator relation="payment[cc_type]" type="credit_card" message="{$this->__('Credit card number does not match credit card type.')}"/>
+        </validators>
+    </field>
+    <field name="payment[cc_exp_month]" type="select" label="{$this->__('Expiration Date - Month')}" required="true">
+        <values>
+            $ccMonthes
+        </values>
+    </field>
+    <field name="payment[cc_exp_year]" type="select" label="{$this->helper('xmlconnect')->__('Expiration Date - Year')}" required="true">
+        <values>
+            $ccYears
+        </values>
+    </field>
+    $verification
+</fieldset>
 EOT;
         $fieldsetXmlObj = Mage::getModel('xmlconnect/simplexml_element', $xml);
         $formXmlObj->appendChild($fieldsetXmlObj);

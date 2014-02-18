@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Core
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -34,38 +34,44 @@ class Mage_Core_Model_Session_Abstract_Varien extends Varien_Object
     const VALIDATOR_REMOTE_ADDR_KEY             = 'remote_addr';
 
     /**
-     * Conigure and start session
+     * Configure and start session
      *
      * @param string $sessionName
      * @return Mage_Core_Model_Session_Abstract_Varien
      */
     public function start($sessionName=null)
     {
-        if (isset($_SESSION)) {
+        if (isset($_SESSION) && !$this->getSkipEmptySessionCheck()) {
             return $this;
         }
 
-        switch($this->getSessionSaveMethod()) {
+        // getSessionSaveMethod has to return correct version of handler in any case
+        $moduleName = $this->getSessionSaveMethod();
+        switch ($moduleName) {
+            /**
+             * backward compatibility with db argument (option is @deprecated after 1.12.0.2)
+             */
             case 'db':
-                ini_set('session.save_handler', 'user');
+                $moduleName = 'user';
+                /* @var $sessionResource Mage_Core_Model_Resource_Session */
                 $sessionResource = Mage::getResourceSingleton('core/session');
-                /* @var $sessionResource Mage_Core_Model_Mysql4_Session */
                 $sessionResource->setSaveHandler();
                 break;
-            case 'memcache':
-                ini_set('session.save_handler', 'memcache');
+            case 'user':
+                // getSessionSavePath represents static function for custom session handler setup
+                call_user_func($this->getSessionSavePath());
+                break;
+            case 'files':
+                //don't change path if it's not writable
+                if (!is_writable($this->getSessionSavePath())) {
+                    break;
+                }
+            default:
                 session_save_path($this->getSessionSavePath());
                 break;
-            case 'eaccelerator':
-                ini_set('session.save_handler', 'eaccelerator');
-                break;
-            default:
-                session_module_name($this->getSessionSaveMethod());
-                if (is_writable($this->getSessionSavePath())) {
-                    session_save_path($this->getSessionSavePath());
-                }
-                break;
         }
+        session_module_name($moduleName);
+
         $cookie = $this->getCookie();
         if (Mage::app()->getStore()->isAdmin()) {
             $sessionMaxLifetime = Mage_Core_Model_Resource_Session::SEESION_MAX_COOKIE_LIFETIME;
@@ -376,7 +382,13 @@ class Mage_Core_Model_Session_Abstract_Varien extends Varien_Object
         }
         if ($this->useValidateHttpUserAgent()
             && $sessionData[self::VALIDATOR_HTTP_USER_AGENT_KEY] != $validatorData[self::VALIDATOR_HTTP_USER_AGENT_KEY]
-            && !in_array($validatorData[self::VALIDATOR_HTTP_USER_AGENT_KEY], $this->getValidateHttpUserAgentSkip())) {
+        ) {
+            $userAgentValidated = $this->getValidateHttpUserAgentSkip();
+            foreach ($userAgentValidated as $agent) {
+                if (preg_match('/' . $agent . '/iu', $validatorData[self::VALIDATOR_HTTP_USER_AGENT_KEY])) {
+                    return true;
+                }
+            }
             return false;
         }
 

@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -36,7 +36,7 @@ class Mage_XmlConnect_Model_Resource_Queue extends Mage_Core_Model_Resource_Db_A
     /**
      * Constructor, setting table and index field
      *
-     * @return void
+     * @return null
      */
     protected function _construct()
     {

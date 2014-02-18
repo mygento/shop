@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -107,7 +107,7 @@ class Mage_Adminhtml_Catalog_CategoryController extends Mage_Adminhtml_Controlle
         $_prevStoreId = Mage::getSingleton('admin/session')
             ->getLastViewedStore(true);
 
-        if ($_prevStoreId != null && !$this->getRequest()->getQuery('isAjax')) {
+        if (!empty($_prevStoreId) && !$this->getRequest()->getQuery('isAjax')) {
             $params['store'] = $_prevStoreId;
             $redirect = true;
         }
@@ -178,13 +178,23 @@ class Mage_Adminhtml_Catalog_CategoryController extends Mage_Adminhtml_Controlle
                 ->setLastEditedCategory($category->getId());
 //            $this->_initLayoutMessages('adminhtml/session');
             $this->loadLayout();
-            $this->getResponse()->setBody(Mage::helper('core')->jsonEncode(array(
-                'messages' => $this->getLayout()->getMessagesBlock()->getGroupedHtml(),
-                'content' =>
-                    $this->getLayout()->getBlock('category.edit')->getFormHtml()
+
+            $eventResponse = new Varien_Object(array(
+                'content' => $this->getLayout()->getBlock('category.edit')->getFormHtml()
                     . $this->getLayout()->getBlock('category.tree')
-                        ->getBreadcrumbsJavascript($breadcrumbsPath, 'editingCategoryBreadcrumbs')
-            )));
+                    ->getBreadcrumbsJavascript($breadcrumbsPath, 'editingCategoryBreadcrumbs'),
+                'messages' => $this->getLayout()->getMessagesBlock()->getGroupedHtml(),
+            ));
+
+            Mage::dispatchEvent('category_prepare_ajax_response', array(
+                'response' => $eventResponse,
+                'controller' => $this
+            ));
+
+            $this->getResponse()->setBody(
+                Mage::helper('core')->jsonEncode($eventResponse->getData())
+            );
+
             return;
         }
 
@@ -275,6 +285,15 @@ class Mage_Adminhtml_Catalog_CategoryController extends Mage_Adminhtml_Controlle
             }
 
             /**
+             * Check "Use Default Value" checkboxes values
+             */
+            if ($useDefaults = $this->getRequest()->getPost('use_default')) {
+                foreach ($useDefaults as $attributeCode) {
+                    $category->setData($attributeCode, false);
+                }
+            }
+
+            /**
              * Process "Use Config Settings" checkboxes
              */
             if ($useConfig = $this->getRequest()->getPost('use_config')) {
@@ -326,15 +345,6 @@ class Mage_Adminhtml_Catalog_CategoryController extends Mage_Adminhtml_Controlle
                 }
 
                 /**
-                 * Check "Use Default Value" checkboxes values
-                 */
-                if ($useDefaults = $this->getRequest()->getPost('use_default')) {
-                    foreach ($useDefaults as $attributeCode) {
-                        $category->setData($attributeCode, false);
-                    }
-                }
-
-                /**
                  * Unset $_POST['use_config'] before save
                  */
                 $category->unsetData('use_post_data_config');
@@ -373,7 +383,7 @@ class Mage_Adminhtml_Catalog_CategoryController extends Mage_Adminhtml_Controlle
          * Category id after which we have put our category
          */
         $prevNodeId     = $this->getRequest()->getPost('aid', false);
-
+        $category->setData('save_rewrites_history', Mage::helper('catalog')->shouldSaveUrlRewritesHistory());
         try {
             $category->move($parentNodeId, $prevNodeId);
             $this->getResponse()->setBody("SUCCESS");
@@ -382,7 +392,7 @@ class Mage_Adminhtml_Catalog_CategoryController extends Mage_Adminhtml_Controlle
             $this->getResponse()->setBody($e->getMessage());
         }
         catch (Exception $e){
-            $this->getResponse()->setBody(Mage::helper('catalog')->__('Category move error'.$e));
+            $this->getResponse()->setBody(Mage::helper('catalog')->__('Category move error %s', $e));
             Mage::logException($e);
         }
 

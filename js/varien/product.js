@@ -19,7 +19,7 @@
  *
  * @category    Varien
  * @package     js
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 if(typeof Product=='undefined') {
@@ -133,14 +133,17 @@ Product.Zoom.prototype = {
         this.imageZoom = this.floorZoom+(v*(this.ceilingZoom-this.floorZoom));
 
         if (overSize) {
-            if (this.imageDim.width > this.containerDim.width) {
+            if (this.imageDim.width > this.imageDim.height) {
                 this.imageEl.style.width = (this.imageZoom*this.containerDim.width)+'px';
-            } else if (this.imageDim.height > this.containerDim.height) {
+            } else {
                 this.imageEl.style.height = (this.imageZoom*this.containerDim.height)+'px';
             }
-
-            if(this.containerDim.ratio){
-                this.imageEl.style.height = (this.imageZoom*this.containerDim.width*this.containerDim.ratio)+'px'; // for safari
+            if (this.containerDim.ratio) {
+                if (this.imageDim.width > this.imageDim.height) {
+                    this.imageEl.style.height = (this.imageZoom*this.containerDim.width*this.containerDim.ratio)+'px'; // for safari
+                } else {
+                    this.imageEl.style.width = (this.imageZoom*this.containerDim.height*this.containerDim.ratio)+'px'; // for safari
+                }
             }
         } else {
             this.slider.setDisabled();
@@ -280,12 +283,12 @@ Product.Config.prototype = {
             $(this.settings[i]).nextSetting   = nextSetting;
             childSettings.push(this.settings[i]);
         }
-        
+
         // Set default values - from config and overwrite them by url values
         if (config.defaultValues) {
             this.values = config.defaultValues;
         }
-        
+
         var separatorIndex = window.location.href.indexOf('#');
         if (separatorIndex != -1) {
             var paramsStr = window.location.href.substr(separatorIndex+1);
@@ -301,7 +304,7 @@ Product.Config.prototype = {
         this.configureForValues();
         document.observe("dom:loaded", this.configureForValues.bind(this));
     },
-    
+
     configureForValues: function () {
         if (this.values) {
             this.settings.each(function(element){
@@ -365,7 +368,8 @@ Product.Config.prototype = {
         var attributeId = element.id.replace(/[a-z]*/, '');
         var options = this.getAttributeOptions(attributeId);
         this.clearSelect(element);
-        element.options[0] = new Option(this.config.chooseText, '');
+        element.options[0] = new Option('', '');
+        element.options[0].innerHTML = this.config.chooseText;
 
         var prevConfig = false;
         if(element.prevSetting){
@@ -491,7 +495,8 @@ Product.Config.prototype = {
             for(var i=this.settings.length-1;i>=0;i--){
                 var selected = this.settings[i].options[this.settings[i].selectedIndex];
                 if(selected.config){
-                    price+= parseFloat(selected.config.price);
+                    var parsedOldPrice = parseFloat(selected.config.oldPrice);
+                    price += isNaN(parsedOldPrice) ? 0 : parsedOldPrice;
                 }
             }
             if (price < 0)
@@ -560,18 +565,24 @@ Product.OptionsPrice.prototype = {
         this.productOldPrice    = config.productOldPrice;
         this.priceInclTax       = config.priceInclTax;
         this.priceExclTax       = config.priceExclTax;
-        this.skipCalculate      = config.skipCalculate;//@deprecated after 1.5.1.0
+        this.skipCalculate      = config.skipCalculate; /** @deprecated after 1.5.1.0 */
         this.duplicateIdSuffix  = config.idSuffix;
         this.specialTaxPrice    = config.specialTaxPrice;
+        this.tierPrices         = config.tierPrices;
+        this.tierPricesInclTax  = config.tierPricesInclTax;
 
         this.oldPlusDisposition = config.oldPlusDisposition;
         this.plusDisposition    = config.plusDisposition;
+        this.plusDispositionTax = config.plusDispositionTax;
 
         this.oldMinusDisposition = config.oldMinusDisposition;
         this.minusDisposition    = config.minusDisposition;
 
-        this.optionPrices    = {};
-        this.containers      = {};
+        this.exclDisposition     = config.exclDisposition;
+
+        this.optionPrices   = {};
+        this.customPrices   = {};
+        this.containers     = {};
 
         this.displayZeroPrice   = true;
 
@@ -594,12 +605,15 @@ Product.OptionsPrice.prototype = {
         this.optionPrices[key] = price;
     },
 
+    addCustomPrices: function(key, price) {
+        this.customPrices[key] = price;
+    },
     getOptionPrices: function() {
         var price = 0;
         var nonTaxable = 0;
         var oldPrice = 0;
         var priceInclTax = 0;
-        var currentTax = this.currentTax; 
+        var currentTax = this.currentTax;
         $H(this.optionPrices).each(function(pair) {
             if ('undefined' != typeof(pair.value.price) && 'undefined' != typeof(pair.value.oldPrice)) {
                 price += parseFloat(pair.value.price);
@@ -609,7 +623,7 @@ Product.OptionsPrice.prototype = {
             } else if (pair.key == 'priceInclTax') {
                 priceInclTax += pair.value;
             } else if (pair.key == 'optionsPriceInclTax') {
-                priceInclTax += pair.value * (100 + currentTax) / 100; 
+                priceInclTax += pair.value * (100 + currentTax) / 100;
             } else {
                 price += parseFloat(pair.value);
                 oldPrice += parseFloat(pair.value);
@@ -632,6 +646,7 @@ Product.OptionsPrice.prototype = {
             var _productPrice;
             var _plusDisposition;
             var _minusDisposition;
+            var _priceInclTax;
             if ($(pair.value)) {
                 if (pair.value == 'old-price-'+this.productId && this.productOldPrice != this.productPrice) {
                     _productPrice = this.productOldPrice;
@@ -642,20 +657,21 @@ Product.OptionsPrice.prototype = {
                     _plusDisposition = this.plusDisposition;
                     _minusDisposition = this.minusDisposition;
                 }
+                _priceInclTax = priceInclTax;
 
                 if (pair.value == 'old-price-'+this.productId && optionOldPrice !== undefined) {
                     price = optionOldPrice+parseFloat(_productPrice);
                 } else if (this.specialTaxPrice == 'true' && this.priceInclTax !== undefined && this.priceExclTax !== undefined) {
                     price = optionPrices+parseFloat(this.priceExclTax);
-                    priceInclTax += this.priceInclTax;
+                    _priceInclTax += this.priceInclTax;
                 } else {
                     price = optionPrices+parseFloat(_productPrice);
-                    priceInclTax += parseFloat(_productPrice) * (100 + this.currentTax) / 100;
+                    _priceInclTax += parseFloat(_productPrice) * (100 + this.currentTax) / 100;
                 }
 
                 if (this.specialTaxPrice == 'true') {
                     var excl = price;
-                    var incl = priceInclTax;
+                    var incl = _priceInclTax;
                 } else if (this.includeTax == 'true') {
                     // tax = tax included into product price by admin
                     var tax = price / (100 + this.defaultTax) * this.defaultTax;
@@ -667,8 +683,25 @@ Product.OptionsPrice.prototype = {
                     var incl = excl + tax;
                 }
 
-                excl += parseFloat(_plusDisposition);
-                incl += parseFloat(_plusDisposition);
+                var subPrice = 0;
+                var subPriceincludeTax = 0;
+                Object.values(this.customPrices).each(function(el){
+                    if (el.excludeTax && el.includeTax) {
+                        subPrice += parseFloat(el.excludeTax);
+                        subPriceincludeTax += parseFloat(el.includeTax);
+                    } else {
+                        subPrice += parseFloat(el.price);
+                        subPriceincludeTax += parseFloat(el.price);
+                    }
+                });
+                excl += subPrice;
+                incl += subPriceincludeTax;
+
+                if (typeof this.exclDisposition == 'undefined') {
+                    excl += parseFloat(_plusDisposition);
+                }
+
+                incl += parseFloat(_plusDisposition) + parseFloat(this.plusDispositionTax);
                 excl -= parseFloat(_minusDisposition);
                 incl -= parseFloat(_minusDisposition);
 
@@ -715,52 +748,33 @@ Product.OptionsPrice.prototype = {
                 }
             };
         }.bind(this));
+
+        for (var i = 0; i < this.tierPrices.length; i++) {
+            $$('.price.tier-' + i).each(function (el) {
+                var price = this.tierPrices[i] + parseFloat(optionPrices);
+                el.innerHTML = this.formatPrice(price);
+            }, this);
+            $$('.price.tier-' + i + '-incl-tax').each(function (el) {
+                var price = this.tierPricesInclTax[i] + parseFloat(optionPrices);
+                el.innerHTML = this.formatPrice(price);
+            }, this);
+            $$('.benefit').each(function (el) {
+                var parsePrice = function (html) {
+                    return parseFloat(/\d+\.?\d*/.exec(html));
+                };
+                var container = $(this.containers[3]) ? this.containers[3] : this.containers[0];
+                var price = parsePrice($(container).innerHTML);
+                var tierPrice = $$('.tier-price.tier-' + i+' .price');
+                tierPrice = tierPrice.length ? parsePrice(tierPrice[0].innerHTML, 10) : 0;
+                var $percent = Selector.findChildElements(el, ['.percent.tier-' + i]);
+                $percent.each(function (el) {
+                    el.innerHTML = Math.ceil(100 - ((100 / price) * tierPrice));
+                });
+            }, this);
+        }
+
     },
-    formatPrice: function(price) {        
-        // ITEAMO . FRONTEND PRICE PRECTISION FORMAT SETTING . CORRECTED <<< 
-          // document.location.href          
-          // alert(dump(this.priceFormat));
-          if(document.location.href.indexOf('siltek') == -1) 
-          {
-            this.priceFormat.precision = 0;
-            this.priceFormat.requiredPrecision = 0;
-          }                  
-          return formatCurrency(price, this.priceFormat);
-        // >>> ITEAMO . FRONTEND PRICE PRECTISION FORMAT SETTING . CORRECTED 
+    formatPrice: function(price) {
+        return formatCurrency(price, this.priceFormat);
     }
 }
-// ITEAMO . DEBUG <<<
-/** DUMP ******************************************************
-* Function : dump()
-* Arguments: The data - array,hash(associative array),object
-*    The level - OPTIONAL
-* Returns  : The textual representation of the array.
-* This function was inspired by the print_r function of PHP.
-* This will accept some data as the argument and return a
-* text that will be a more readable version of the
-* array/hash/object that is given.*/
-function dump(arr,level) {
-	var dumped_text = "";
-	if(!level) level = 0;
-
-	var level_padding = "";
-	for(var j=0;j<level+1;j++) level_padding += "    ";
-
-	if(typeof(arr) == 'object') { //Array/Hashes/Objects
-		for(var item in arr) {
-			var value = arr[item];
-
-			if(typeof(value) == 'object') { //If it is an array,
-				dumped_text += level_padding + "'" + item + "' ...\n";
-				dumped_text += dump(value,level+1);
-			} else {
-				dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
-			}
-		}
-	} else { //Stings/Chars/Numbers etc.
-		dumped_text = "===>"+arr+"<===("+typeof(arr)+")";
-	}
-	return dumped_text;
-}
-/********************************************************************/
-// >>> ITEAMO . DEBUG 

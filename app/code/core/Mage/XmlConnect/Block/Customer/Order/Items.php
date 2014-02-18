@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -39,25 +39,7 @@ class Mage_XmlConnect_Block_Customer_Order_Items extends Mage_Sales_Block_Order_
     protected function _construct()
     {
         parent::_construct();
-        $this->addItemRender('default', 'xmlconnect/customer_order_item_renderer_default');
-    }
-
-    /**
-     * Add renderer for item product type
-     *
-     * @param   string $type
-     * @param   string $block
-     * @param   string $template
-     * @return  Mage_Checkout_Block_Cart_Abstract
-     */
-    public function addItemRender($type, $block, $template = '')
-    {
-        $this->_itemRenders[$type] = array(
-            'block'     => $block,
-            'renderer'  => null
-        );
-
-        return $this;
+        $this->addItemRender('default', 'xmlconnect/customer_order_item_renderer_default', null);
     }
 
     /**
@@ -66,30 +48,29 @@ class Mage_XmlConnect_Block_Customer_Order_Items extends Mage_Sales_Block_Order_
      * @param string $type
      * @return Mage_Core_Block_Abstract
      */
-    public function getItemRenderer($type = 'default')
+    public function getItemRenderer($type)
     {
-        if (!isset($this->_itemRenders[$type])) {
+        if (empty($type) || !isset($this->_itemRenders[$type])) {
             $type = 'default';
         }
 
         if (is_null($this->_itemRenders[$type]['renderer'])) {
             $this->_itemRenders[$type]['renderer'] = $this->getLayout()
-                ->createBlock($this->_itemRenders[$type]['block'])
-                ->setRenderedBlock($this);
+                ->createBlock($this->_itemRenders[$type]['block'])->setRenderedBlock($this);
         }
         return $this->_itemRenders[$type]['renderer'];
     }
 
     /**
      * Render XML for items
+     * (get from template: sales/order/items.phtml)
      *
      * @param Mage_XmlConnect_Model_Simplexml_Element $orderXmlObj
-     * @return void
+     * @return null
      */
     public function addItemsToXmlObject(Mage_XmlConnect_Model_Simplexml_Element $orderXmlObj)
     {
         $itemsXml = $orderXmlObj->addChild('ordered_items');
-
         foreach ($this->getItems() as $item) {
             if ($item->getParentItem()) {
                 // if Item is option of grouped product - do not render it
@@ -102,7 +83,7 @@ class Mage_XmlConnect_Block_Customer_Order_Items extends Mage_Sales_Block_Order_
             if ($type == 'giftcard' && !is_object(Mage::getConfig()->getNode('modules/Enterprise_GiftCard'))) {
                 continue;
             }
-            $renderer = $this->getItemRenderer($type)->setItem($item);
+            $renderer = $this->getItemRenderer($type)->setNewApi($this->getNewApi())->setItem($item);
             if (method_exists($renderer, 'addItemToXmlObject')) {
                 $renderer->addItemToXmlObject($itemsXml);
             }

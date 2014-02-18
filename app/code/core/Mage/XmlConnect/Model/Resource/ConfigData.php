@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -36,7 +36,7 @@ class Mage_XmlConnect_Model_Resource_ConfigData extends Mage_Core_Model_Mysql4_A
     /**
      * Initialize configuration data
      *
-     * @return void
+     * @return null
      */
     protected function _construct()
     {
@@ -61,11 +61,7 @@ class Mage_XmlConnect_Model_Resource_ConfigData extends Mage_Core_Model_Mysql4_A
             'value'     => $value
         );
 
-        $this->_getWriteAdapter()->insertOnDuplicate(
-            $this->getMainTable(),
-            $newData,
-            array('value')
-        );
+        $this->_getWriteAdapter()->insertOnDuplicate($this->getMainTable(), $newData, array('value'));
         return $this;
     }
 
@@ -73,12 +69,12 @@ class Mage_XmlConnect_Model_Resource_ConfigData extends Mage_Core_Model_Mysql4_A
      * Delete config value
      *
      * @param int $applicationId
-     * @param bool $category
-     * @param bool $path
+     * @param string $category
+     * @param string $path
      * @param bool $pathLike
      * @return Mage_XmlConnect_Model_Mysql4_ConfigData
      */
-    public function deleteConfig($applicationId, $category = false, $path = false, $pathLike = true)
+    public function deleteConfig($applicationId, $category = '', $path = '', $pathLike = true)
     {
         try {
             $this->_getWriteAdapter()->beginTransaction();
@@ -88,8 +84,7 @@ class Mage_XmlConnect_Model_Resource_ConfigData extends Mage_Core_Model_Mysql4_A
                 $deleteWhere[] = $writeAdapter->quoteInto('category=?', $category);
             }
             if ($path) {
-                $deleteWhere[] = $pathLike
-                    ? $writeAdapter->quoteInto('path like ?', $path . '/%')
+                $deleteWhere[] = $pathLike ? $writeAdapter->quoteInto('path like ?', $path . '/%')
                     : $writeAdapter->quoteInto('path=?', $path);
             }
             $writeAdapter->delete($this->getMainTable(), $deleteWhere);

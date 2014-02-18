@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Wishlist
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -52,7 +52,7 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
      * If product out of stock, its item will be removed after load
      *
      * @var bool
-     */
+      */
     protected $_productInStock = false;
 
     /**
@@ -89,6 +89,21 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
      * @var boolean
      */
     protected $_isProductNameJoined = false;
+
+    /**
+     * Customer website ID
+     *
+     * @var int
+     */
+    protected $_websiteId = null;
+
+    /**
+     * Customer group ID
+     *
+     * @var int
+     */
+    protected $_customerGroupId = null;
+
 
     /**
      * Initialize resource model for collection
@@ -130,8 +145,11 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
     protected function _assignOptions()
     {
         $itemIds = array_keys($this->_items);
-        $optionCollection = Mage::getModel('wishlist/item_option')->getCollection()
-            ->addItemFilter($itemIds);
+        /* @var $optionCollection Mage_Wishlist_Model_Resource_Item_Option_Collection */
+        $optionCollection = Mage::getModel('wishlist/item_option')->getCollection();
+        $optionCollection->addItemFilter($itemIds);
+
+        /* @var $item Mage_Wishlist_Model_Item */
         foreach ($this as $item) {
             $item->setOptions($optionCollection->getOptionsByItem($item));
         }
@@ -170,16 +188,18 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
         foreach ($storeIds as $id) {
             $productCollection->addStoreFilter($id);
         }
-        $productCollection->addPriceData()
+
+        if ($this->_productVisible) {
+            Mage::getSingleton('catalog/product_visibility')->addVisibleInSiteFilterToCollection($productCollection);
+        }
+
+        $productCollection->addPriceData($this->_customerGroupId, $this->_websiteId)
             ->addTaxPercents()
             ->addIdFilter($this->_productIds)
             ->addAttributeToSelect($attributes)
             ->addOptionsToResult()
             ->addUrlRewrite();
 
-        if ($this->_productVisible) {
-            Mage::getSingleton('catalog/product_visibility')->addVisibleInSiteFilterToCollection($productCollection);
-        }
         if ($this->_productSalable) {
             $productCollection = Mage::helper('adminhtml/sales')->applySalableProductTypesFilter($productCollection);
         }
@@ -193,7 +213,7 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
         foreach ($this as $item) {
             $product = $productCollection->getItemById($item->getProductId());
             if ($product) {
-                if ($checkInStock && !$product->isSalable()) {
+                if ($checkInStock && !$product->isInStock()) {
                     $this->removeItemByKey($item->getId());
                 } else {
                     $product->setCustomOptions(array());
@@ -225,23 +245,38 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
     }
 
     /**
-     * Add filter by shared stores
+     * Add filtration by customer id
      *
-     * @param int|array $store
+     * @param int $customerId
      * @return Mage_Wishlist_Model_Resource_Item_Collection
      */
-    public function addStoreFilter($store = null)
+    public function addCustomerIdFilter($customerId)
     {
-        if (is_null($store)) {
-            $store = Mage::app()->getStore()->getId();
-        }
+        $this->getSelect()
+            ->join(
+                array('wishlist' => $this->getTable('wishlist/wishlist')),
+                'main_table.wishlist_id = wishlist.wishlist_id',
+                array()
+            )
+            ->where('wishlist.customer_id = ?', $customerId);
+        return $this;
+    }
 
-        if (!is_array($store)) {
-            $store = array($store);
+    /**
+     * Add filter by shared stores
+     *
+     * @param array $storeIds
+     *
+     * @return Mage_Wishlist_Model_Resource_Item_Collection
+     */
+    public function addStoreFilter($storeIds = array())
+    {
+        if (!is_array($storeIds)) {
+            $storeIds = array($storeIds);
         }
-        $this->_storeIds = $store;
+        $this->_storeIds = $storeIds;
+        $this->addFieldToFilter('store_id', array('in' => $this->_storeIds));
 
-        $this->addFieldToFilter('store_id', $store);
         return $this;
     }
 
@@ -262,6 +297,9 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
 
     /**
      * Add wishlist sort order
+     *
+     * @deprecated after 1.6.0.0-rc2
+     * @see Varien_Data_Collection_Db::setOrder() is used instead
      *
      * @param string $attribute
      * @param string $dir
@@ -464,5 +502,29 @@ class Mage_Wishlist_Model_Resource_Item_Collection extends Mage_Core_Model_Resou
         }
 
         return (int)$this->_itemsQty;
+    }
+
+    /**
+     * Setter for $_websiteId
+     *
+     * @param int $websiteId
+     * @return Mage_Wishlist_Model_Resource_Item_Collection
+     */
+    public function setWebsiteId($websiteId)
+    {
+        $this->_websiteId = $websiteId;
+        return $this;
+    }
+
+    /**
+     * Setter for $_customerGroupId
+     *
+     * @param int $customerGroupId
+     * @return Mage_Wishlist_Model_Resource_Item_Collection
+     */
+    public function setCustomerGroupId($customerGroupId)
+    {
+        $this->_customerGroupId = $customerGroupId;
+        return $this;
     }
 }

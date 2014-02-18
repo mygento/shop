@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -41,7 +41,7 @@ class Mage_XmlConnect_Block_Catalog_Product_List extends Mage_XmlConnect_Block_C
     protected $_productCollection = null;
 
     /**
-     * Store collected layered navigation filters whike applying them
+     * Store collected layered navigation filters while applying them
      *
      * @var array
      */
@@ -99,7 +99,6 @@ class Mage_XmlConnect_Block_Catalog_Product_List extends Mage_XmlConnect_Block_C
             if ($category && is_object($category) && $category->getId()) {
                 $layer->setCurrentCategory($category);
             }
-
             if (!$this->getNeedBlockApplyingFilters()) {
                 $attributes     = $layer->getFilterableAttributes();
                 /**
@@ -107,30 +106,28 @@ class Mage_XmlConnect_Block_Catalog_Product_List extends Mage_XmlConnect_Block_C
                  */
                 foreach ($attributes as $attributeItem) {
                     $attributeCode  = $attributeItem->getAttributeCode();
-                    $filterModel    = $this->helper('xmlconnect')->getFilterByKey($attributeCode);
+                    list($filterModel, $filterBlock) = $this->helper('xmlconnect')->getFilterByKey($attributeCode);
 
-                    $filterModel->setLayer($layer)
-                        ->setAttributeModel($attributeItem);
+                    $filterModel->setLayer($layer)->setAttributeModel($attributeItem);
 
-                    $filterParam = parent::REQUEST_FILTER_PARAM_REFIX . $attributeCode;
+                    $filterParam = parent::REQUEST_FILTER_PARAM_PREFIX . $attributeCode;
                     /**
                      * Set new request var
                      */
                     if (isset($requestParams[$filterParam])) {
                         $filterModel->setRequestVar($filterParam);
                     }
-                    $filterModel->apply($request, null);
+                    $filterModel->apply($request, $filterBlock);
                     $filters[] = $filterModel;
                 }
 
                 /**
                  * Separately apply and save category filter
                  */
-                $categoryFilter = $this->helper('xmlconnect')->getFilterByKey('category');
-                $filterParam    = parent::REQUEST_FILTER_PARAM_REFIX . $categoryFilter->getRequestVar();
-                $categoryFilter->setLayer($layer)
-                    ->setRequestVar($filterParam)
-                    ->apply($this->getRequest(), null);
+                list($categoryFilter, $categoryFilterBlock) = $this->helper('xmlconnect')->getFilterByKey('category');
+                $filterParam = parent::REQUEST_FILTER_PARAM_PREFIX . $categoryFilter->getRequestVar();
+                $categoryFilter->setLayer($layer)->setRequestVar($filterParam)
+                    ->apply($this->getRequest(), $categoryFilterBlock);
                 $filters[] = $categoryFilter;
 
                 $this->_collectedFilters = $filters;
@@ -157,7 +154,6 @@ class Mage_XmlConnect_Block_Catalog_Product_List extends Mage_XmlConnect_Block_C
                 $this->setHasProductItems(1);
             }
             $collection->getSelect()->limit($count, $offset);
-
             $collection->setFlag('require_stock_items', true);
 
             $this->_productCollection = $collection;
@@ -176,18 +172,26 @@ class Mage_XmlConnect_Block_Catalog_Product_List extends Mage_XmlConnect_Block_C
         /**
          * Apply sort params
          */
-        $reguest = $this->getRequest();
-        foreach ($reguest->getParams() as $key => $value) {
-            if (0 === strpos($key, parent::REQUEST_SORT_ORDER_PARAM_REFIX)) {
-                $key = str_replace(parent::REQUEST_SORT_ORDER_PARAM_REFIX, '', $key);
+        $request = $this->getRequest();
+        $isOrderValueExist = false;
+        foreach ($request->getParams() as $key => $value) {
+            if (0 === strpos($key, parent::REQUEST_SORT_ORDER_PARAM_PREFIX)) {
+                $key = str_replace(parent::REQUEST_SORT_ORDER_PARAM_PREFIX, '', $key);
                 if ($value != 'desc') {
                     $value = 'asc';
                 }
-                $collection->addAttributeToSort($key, $value);
+                if ($key == 'relevance') {
+                    $collection->getSelect()->order("relevance {$value}");
+                } else {
+                    $collection->addAttributeToSort($key, $value);
+                }
+                $isOrderValueExist = true;
             }
         }
+        if (!$isOrderValueExist && ($collection instanceof Mage_CatalogSearch_Model_Resource_Fulltext_Collection)) {
+            $collection->getSelect()->order("relevance desc");
+        }
         $collection->addAttributeToSelect(array('image', 'name', 'description'));
-
         return $this;
     }
 

@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Checkout
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -28,14 +28,20 @@
 class Mage_Checkout_Model_Session extends Mage_Core_Model_Session_Abstract
 {
     const CHECKOUT_STATE_BEGIN = 'begin';
-    protected $_quote = null;
+
+    /**
+     * Quote instance
+     *
+     * @var null|Mage_Sales_Model_Quote
+     */
+    protected $_quote;
 
     /**
      * Customer instance
      *
      * @var null|Mage_Customer_Model_Customer
      */
-    protected $_customer = null;
+    protected $_customer;
 
     /**
      * Whether load only active quote
@@ -43,6 +49,13 @@ class Mage_Checkout_Model_Session extends Mage_Core_Model_Session_Abstract
      * @var bool
      */
     protected $_loadInactive = false;
+
+    /**
+     * Loaded order instance
+     *
+     * @var Mage_Sales_Model_Order
+     */
+    protected $_order;
 
     /**
      * Class constructor. Initialize checkout session namespace
@@ -64,7 +77,7 @@ class Mage_Checkout_Model_Session extends Mage_Core_Model_Session_Abstract
     /**
      * Set customer instance
      *
-     * @param Mage_Customer_Model_Customer $customer
+     * @param Mage_Customer_Model_Customer|null $customer
      * @return Mage_Checkout_Model_Session
      */
     public function setCustomer($customer)
@@ -80,7 +93,7 @@ class Mage_Checkout_Model_Session extends Mage_Core_Model_Session_Abstract
      */
     public function hasQuote()
     {
-        return !(is_null($this->_quote));
+        return isset($this->_quote);
     }
 
     /**
@@ -105,10 +118,8 @@ class Mage_Checkout_Model_Session extends Mage_Core_Model_Session_Abstract
         Mage::dispatchEvent('custom_quote_process', array('checkout_session' => $this));
 
         if ($this->_quote === null) {
-            $quote = Mage::getModel('sales/quote')
-                ->setStoreId(Mage::app()->getStore()->getId());
-
             /** @var $quote Mage_Sales_Model_Quote */
+            $quote = Mage::getModel('sales/quote')->setStoreId(Mage::app()->getStore()->getId());
             if ($this->getQuoteId()) {
                 if ($this->_loadInactive) {
                     $quote->load($this->getQuoteId());
@@ -386,5 +397,33 @@ class Mage_Checkout_Model_Session extends Mage_Core_Model_Session_Abstract
         $this->_quote = $quote;
         $this->setQuoteId($quote->getId());
         return $this;
+    }
+
+    /**
+     * Get order instance based on last order ID
+     *
+     * @return Mage_Sales_Model_Order
+     */
+    public function getLastRealOrder()
+    {
+        $orderId = $this->getLastRealOrderId();
+        if ($this->_order !== null && $orderId == $this->_order->getIncrementId()) {
+            return $this->_order;
+        }
+        $this->_order = $this->_getOrderModel();
+        if ($orderId) {
+            $this->_order->loadByIncrementId($orderId);
+        }
+        return $this->_order;
+    }
+
+    /**
+     * Get order model
+     *
+     * @return Mage_Sales_Model_Order
+     */
+    protected function _getOrderModel()
+    {
+        return Mage::getModel('sales/order');
     }
 }

@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Wishlist
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -49,9 +49,11 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
     protected function _processLocalizedQty($qty)
     {
         if (!$this->_localFilter) {
-            $this->_localFilter = new Zend_Filter_LocalizedToNormalized(array('locale' => Mage::app()->getLocale()->getLocaleCode()));
+            $this->_localFilter = new Zend_Filter_LocalizedToNormalized(
+                array('locale' => Mage::app()->getLocale()->getLocaleCode())
+            );
         }
-        $qty = $this->_localFilter->filter($qty);
+        $qty = $this->_localFilter->filter((float)$qty);
         if ($qty < 0) {
             $qty = null;
         }
@@ -71,10 +73,15 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
      */
     public function allcartAction()
     {
+        if (!$this->_validateFormKey()) {
+            $this->_forward('noRoute');
+            return;
+        }
+
         $wishlist   = $this->_getWishlist();
         if (!$wishlist) {
             $this->_forward('noRoute');
-            return ;
+            return;
         }
         $isOwner    = $wishlist->isOwner(Mage::getSingleton('customer/session')->getCustomerId());
 
@@ -87,10 +94,13 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
         $collection = $wishlist->getItemCollection()
                 ->setVisibilityFilter();
 
-        $qtys = $this->getRequest()->getParam('qty');
+        $qtysString = $this->getRequest()->getParam('qty');
+        $qtys =  array_filter(json_decode($qtysString), 'strlen');
+
         foreach ($collection as $item) {
             /** @var Mage_Wishlist_Model_Item */
             try {
+                $disableAddToCart = $item->getProduct()->getDisableAddToCart();
                 $item->unsProduct();
 
                 // Set qty
@@ -100,7 +110,7 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
                         $item->setQty($qty);
                     }
                 }
-
+                $item->getProduct()->setDisableAddToCart($disableAddToCart);
                 // Add to cart
                 if ($item->addToCart($cart, $isOwner)) {
                     $addedItems[] = $item->getProduct();
@@ -114,6 +124,11 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
                 } else {
                     $messages[] = $this->__('%s for "%s".', trim($e->getMessage(), '.'), $item->getProduct()->getName());
                 }
+
+                $cartItem = $cart->getQuote()->getItemByProduct($item->getProduct());
+                if ($cartItem) {
+                    $cart->getQuote()->deleteItem($cartItem);
+                }
             } catch (Exception $e) {
                 Mage::logException($e);
                 $messages[] = Mage::helper('wishlist')->__('Cannot add the item to shopping cart.');
@@ -121,7 +136,7 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
         }
 
         if ($isOwner) {
-            $indexUrl = Mage::helper('wishlist')->getListUrl();
+            $indexUrl = Mage::helper('wishlist')->getListUrl($wishlist->getId());
         } else {
             $indexUrl = Mage::getUrl('wishlist/shared', array('code' => $wishlist->getSharingCode()));
         }
@@ -184,9 +199,10 @@ abstract class Mage_Wishlist_Controller_Abstract extends Mage_Core_Controller_Fr
             Mage::getSingleton('checkout/session')->addSuccess(
                 Mage::helper('wishlist')->__('%d product(s) have been added to shopping cart: %s.', count($addedItems), join(', ', $products))
             );
+
+            // save cart and collect totals
+            $cart->save()->getQuote()->collectTotals();
         }
-        // save cart and collect totals
-        $cart->save()->getQuote()->collectTotals();
 
         Mage::helper('wishlist')->calculate();
 

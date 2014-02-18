@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Paypal
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -132,14 +132,17 @@ class Mage_Paypal_Model_Ipn
     {
             $sReq = '';
             foreach ($this->_request as $k => $v) {
-                $sReq .= '&'.$k.'='.urlencode(stripslashes($v));
+                $sReq .= '&'.$k.'='.urlencode($v);
             }
             $sReq .= "&cmd=_notify-validate";
             $sReq = substr($sReq, 1);
             $this->_debugData['postback'] = $sReq;
             $this->_debugData['postback_to'] = $this->_config->getPaypalUrl();
 
-            $httpAdapter->write(Zend_Http_Client::POST, $this->_config->getPaypalUrl(), '1.1', array(), $sReq);
+            $httpAdapter->setConfig(array('verifypeer' => $this->_config->verifyPeer));
+            $httpAdapter->write(Zend_Http_Client::POST, $this->_config->getPaypalUrl(), '1.1', array(
+                'Connection: close',
+            ), $sReq);
             try {
                 $response = $httpAdapter->read();
             } catch (Exception $e) {
@@ -170,7 +173,12 @@ class Mage_Paypal_Model_Ipn
             $id = $this->_request['invoice'];
             $this->_order = Mage::getModel('sales/order')->loadByIncrementId($id);
             if (!$this->_order->getId()) {
-                throw new Exception(sprintf('Wrong order ID: "%s".', $id));
+                $this->_debugData['exception'] = sprintf('Wrong order ID: "%s".', $id);
+                $this->_debug();
+                Mage::app()->getResponse()
+                    ->setHeader('HTTP/1.1','503 Service Unavailable')
+                    ->sendResponse();
+                exit;
             }
             // re-initialize config with the method code and store id
             $methodCode = $this->_order->getPayment()->getMethod();
@@ -251,13 +259,131 @@ class Mage_Paypal_Model_Ipn
 
         $this->_info = Mage::getSingleton('paypal/info');
         try {
-            // handle payment_status
-            $paymentStatus = $this->_filterPaymentStatus($this->_request['payment_status']);
+            // Handle payment_status
+            $transactionType = isset($this->_request['txn_type']) ? $this->_request['txn_type'] : null;
+            switch ($transactionType) {
+                // handle new case created
+                case Mage_Paypal_Model_Info::TXN_TYPE_NEW_CASE:
+                    $this->_registerDispute();
+                    break;
 
+                // handle new adjustment is created
+                case Mage_Paypal_Model_Info::TXN_TYPE_ADJUSTMENT:
+                    $this->_registerAdjustment();
+                    break;
+
+                //handle new transaction created
+                default:
+                    $this->_registerTransaction();
+            }
+        } catch (Mage_Core_Exception $e) {
+            $comment = $this->_createIpnComment(Mage::helper('paypal')->__('Note: %s', $e->getMessage()), true);
+            $comment->save();
+            throw $e;
+        }
+
+//            switch ($paymentStatus) {
+//                // paid
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_COMPLETED:
+//                    $this->_registerPaymentCapture();
+//                    break;
+//
+//                // the holded payment was denied on paypal side
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_DENIED:
+//                    $this->_registerPaymentDenial();
+//                    break;
+//
+//                // customer attempted to pay via bank account, but failed
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_FAILED:
+//                    // cancel order
+//                    $this->_registerPaymentFailure();
+//                    break;
+//
+//                // refund forced by PayPal
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_REVERSED: // break is intentionally omitted
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_UNREVERSED: // or returned back :)
+//                    $this->_registerPaymentReversal();
+//                    break;
+//
+//                // refund by merchant on PayPal side
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_REFUNDED:
+//                    $this->_registerPaymentRefund();
+//                    break;
+//
+//                // payment was obtained, but money were not captured yet
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_PENDING:
+//                    $this->_registerPaymentPending();
+//                    break;
+//
+//                // MassPayments success
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_PROCESSED:
+//                    $this->_registerMasspaymentsSuccess();
+//                    break;
+//
+//                // authorization expire/void
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_EXPIRED: // break is intentionally omitted
+//                case Mage_Paypal_Model_Info::PAYMENTSTATUS_VOIDED:
+//                    $this->_registerPaymentVoid();
+//                    break;
+//
+//                default:
+//                    throw new Exception("Cannot handle payment status '{$paymentStatus}'.");
+//            }
+//        } catch (Mage_Core_Exception $e) {
+//            $comment = $this->_createIpnComment(Mage::helper('paypal')->__('Note: %s', $e->getMessage()), true);
+//            $comment->save();
+//            throw $e;
+//        }
+    }
+
+    /**
+     * Process adjustment notification
+     */
+    protected function _registerAdjustment()
+    {
+        $reasonCode = isset($this->_request['reason_code']) ? $this->_request['reason_code'] : null;
+        $reasonComment = $this->_info->explainReasonCode($reasonCode);
+        $notificationAmount = $this->_order->getBaseCurrency()->formatTxt($this->_request['mc_gross']);
+        /**
+         *  Add IPN comment about registered dispute
+         */
+        $message = Mage::helper('paypal')->__('IPN "%s". A dispute has been resolved and closed. %s Transaction amount %s.', ucfirst($reasonCode), $notificationAmount, $reasonComment);
+        $this->_order->addStatusHistoryComment($message)
+            ->setIsCustomerNotified(false)
+            ->save();
+    }
+
+    /**
+     * Process dispute notification
+     */
+    protected function _registerDispute()
+    {
+        $reasonCode = isset($this->_request['reason_code']) ? $this->_request['reason_code'] : null;
+        $reasonComment = $this->_info->explainReasonCode($reasonCode);
+        $caseType = isset($this->_request['case_type']) ? $this->_request['case_type'] : null;
+        $caseTypeLabel = $this->_info->getCaseTypeLabel($caseType);
+        $caseId = isset($this->_request['case_id']) ? $this->_request['case_id'] : null;
+        /**
+         *  Add IPN comment about registered dispute
+         */
+        $message = Mage::helper('paypal')->__('IPN "%s". Case type "%s". Case ID "%s" %s', ucfirst($caseType), $caseTypeLabel, $caseId, $reasonComment);
+        $this->_order->addStatusHistoryComment($message)
+            ->setIsCustomerNotified(false)
+            ->save();
+    }
+
+    /**
+     * Process regular IPN notifications
+     */
+    protected function _registerTransaction()
+    {
+        try {
+            // Handle payment_status
+            $paymentStatus = $this->_filterPaymentStatus($this->_request['payment_status']);
             switch ($paymentStatus) {
                 // paid
                 case Mage_Paypal_Model_Info::PAYMENTSTATUS_COMPLETED:
-                    $this->_registerPaymentCapture();
+                    $this->_registerPaymentCapture(true);
                     break;
 
                 // the holded payment was denied on paypal side
@@ -271,25 +397,22 @@ class Mage_Paypal_Model_Ipn
                     $this->_registerPaymentFailure();
                     break;
 
-                // refund forced by PayPal
-                case Mage_Paypal_Model_Info::PAYMENTSTATUS_REVERSED: // break is intentionally omitted
-                case Mage_Paypal_Model_Info::PAYMENTSTATUS_UNREVERSED: // or returned back :)
-                    $this->_registerPaymentReversal();
-                    break;
-
-                // refund by merchant on PayPal side
-                case Mage_Paypal_Model_Info::PAYMENTSTATUS_REFUNDED:
-                    $this->_registerPaymentRefund();
-                    break;
-
                 // payment was obtained, but money were not captured yet
                 case Mage_Paypal_Model_Info::PAYMENTSTATUS_PENDING:
                     $this->_registerPaymentPending();
                     break;
 
-                // MassPayments success
                 case Mage_Paypal_Model_Info::PAYMENTSTATUS_PROCESSED:
                     $this->_registerMasspaymentsSuccess();
+                    break;
+
+                case Mage_Paypal_Model_Info::PAYMENTSTATUS_REVERSED:// break is intentionally omitted
+                case Mage_Paypal_Model_Info::PAYMENTSTATUS_UNREVERSED:
+                    $this->_registerPaymentReversal();
+                    break;
+
+                case Mage_Paypal_Model_Info::PAYMENTSTATUS_REFUNDED:
+                    $this->_registerPaymentRefund();
                     break;
 
                 // authorization expire/void
@@ -365,10 +488,11 @@ class Mage_Paypal_Model_Ipn
         $payment->registerCaptureNotification($this->getRequestData('mc_gross'));
         $order->save();
 
-        // notify customer
-        if ($invoice = $payment->getCreatedInvoice()) {
+        $invoice = $payment->getCreatedInvoice();
+        if ($invoice) {
+            // notify customer
             $message = Mage::helper('paypal')->__('Notified customer about invoice #%s.', $invoice->getIncrementId());
-            $comment = $order->sendNewOrderEmail()->addStatusHistoryComment($message)
+            $order->sendNewOrderEmail()->addStatusHistoryComment($message)
                 ->setIsCustomerNotified(true)
                 ->save();
         }
@@ -376,29 +500,36 @@ class Mage_Paypal_Model_Ipn
 
     /**
      * Process completed payment (either full or partial)
+     *
+     * @param bool $skipFraudDetection
      */
-    protected function _registerPaymentCapture()
+    protected function _registerPaymentCapture($skipFraudDetection = false)
     {
         if ($this->getRequestData('transaction_entity') == 'auth') {
             return;
         }
+        $parentTransactionId = $this->getRequestData('parent_txn_id');
         $this->_importPaymentInformation();
         $payment = $this->_order->getPayment();
         $payment->setTransactionId($this->getRequestData('txn_id'))
             ->setPreparedMessage($this->_createIpnComment(''))
-            ->setParentTransactionId($this->getRequestData('parent_txn_id'))
+            ->setParentTransactionId($parentTransactionId)
             ->setShouldCloseParentTransaction('Completed' === $this->getRequestData('auth_status'))
             ->setIsTransactionClosed(0)
-            ->registerCaptureNotification($this->getRequestData('mc_gross'));
+            ->registerCaptureNotification(
+                $this->getRequestData('mc_gross'),
+                $skipFraudDetection && $parentTransactionId
+            );
         $this->_order->save();
 
         // notify customer
-        if ($invoice = $payment->getCreatedInvoice() && !$this->_order->getEmailSent()) {
-            $comment = $this->_order->sendNewOrderEmail()->addStatusHistoryComment(
-                    Mage::helper('paypal')->__('Notified customer about invoice #%s.', $invoice->getIncrementId())
-                )
-                ->setIsCustomerNotified(true)
-                ->save();
+        $invoice = $payment->getCreatedInvoice();
+        if ($invoice && !$this->_order->getEmailSent()) {
+            $this->_order->sendNewOrderEmail()->addStatusHistoryComment(
+                Mage::helper('paypal')->__('Notified customer about invoice #%s.', $invoice->getIncrementId())
+            )
+            ->setIsCustomerNotified(true)
+            ->save();
         }
     }
 
@@ -444,38 +575,43 @@ class Mage_Paypal_Model_Ipn
         $this->_order->save();
 
         // TODO: there is no way to close a capture right now
-
-        if ($creditmemo = $payment->getCreatedCreditmemo()) {
+        $creditmemo = $payment->getCreatedCreditmemo();
+        if ($creditmemo) {
             $creditmemo->sendEmail();
-            $comment = $this->_order->addStatusHistoryComment(
-                    Mage::helper('paypal')->__('Notified customer about creditmemo #%s.', $creditmemo->getIncrementId())
-                )
-                ->setIsCustomerNotified(true)
-                ->save();
+            $this->_order->addStatusHistoryComment(
+                Mage::helper('paypal')->__('Notified customer about creditmemo #%s.', $creditmemo->getIncrementId())
+            )
+            ->setIsCustomerNotified(true)
+            ->save();
         }
     }
 
     /**
-     * Process payment reversal notification
+     * Process payment reversal and cancelled reversal notification
      */
     protected function _registerPaymentReversal()
     {
+        $reasonCode = isset($this->_request['reason_code']) ? $this->_request['reason_code'] : null;
+        $reasonComment = $this->_info->explainReasonCode($reasonCode);
+        $notificationAmount = $this->_order
+            ->getBaseCurrency()
+            ->formatTxt($this->_request['mc_gross'] + $this->_request['mc_fee']);
+        $paymentStatus = $this->_filterPaymentStatus(isset($this->_request['payment_status'])
+            ? $this->_request['payment_status']
+            : null
+        );
+        $orderStatus = ($paymentStatus == Mage_Paypal_Model_Info::PAYMENTSTATUS_REVERSED)
+            ? Mage_Paypal_Model_Info::ORDER_STATUS_REVERSED
+            : Mage_Paypal_Model_Info::ORDER_STATUS_CANCELED_REVERSAL;
         /**
-         * PayPal may send such payment status when triggered IPR denial
-         * Note that this check is done on the old payment info object, before importing new payment information
+         * Change order status to PayPal Reversed/PayPal Cancelled Reversal if it is possible.
          */
-        if ($this->_info->isPaymentReviewRequired($this->_order->getPayment())) {
-            $this->_registerPaymentDenial();
-            return;
-        }
-
-        if ('chargeback_reimbursement' == $this->getRequestData('reason_code')) {
-            // TODO: chargebacks reversals are not implemented
-            return;
-        }
-
-        // treat as a usual charegeback
-        $this->_registerPaymentRefund();
+        $message = Mage::helper('paypal')->__('IPN "%s". %s Transaction amount %s. Transaction ID: "%s"', $this->_request['payment_status'], $reasonComment, $notificationAmount, $this->_request['txn_id']);
+        $this->_order->setStatus($orderStatus);
+        $this->_order->save();
+        $this->_order->addStatusHistoryComment($message, $orderStatus)
+            ->setIsCustomerNotified(false)
+            ->save();
     }
 
     /**
@@ -495,7 +631,9 @@ class Mage_Paypal_Model_Ipn
         }
 
         // case when was placed using PayPal standard
-        if (Mage_Sales_Model_Order::STATE_PENDING_PAYMENT == $this->_order->getState()) {
+        if (Mage_Sales_Model_Order::STATE_PENDING_PAYMENT == $this->_order->getState()
+            && !$this->getRequestData('transaction_entity')
+        ) {
             $this->_registerPaymentCapture();
             return;
         }
@@ -680,7 +818,7 @@ class Mage_Paypal_Model_Ipn
      */
     protected function _debug()
     {
-        if ($this->_config->debug) {
+        if ($this->_config && $this->_config->debug) {
             $file = $this->_config->getMethodCode() ? "payment_{$this->_config->getMethodCode()}.log"
                 : self::DEFAULT_LOG_FILE;
             Mage::getModel('core/log_adapter', $file)->log($this->_debugData);

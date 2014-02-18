@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<layout version="0.1.0">
+    <default>
+        <reference name="head">
+            <action method="addJs" ifconfig="carriers/dellin/jquery">
+                <script>jquery/jquery-1.8.2.min.js</script>
+            </action>
+            <action method="addJs" ifconfig="carriers/dellin/jquery">
+                <script>jquery/mygento/jquery.init.js</script>
+            </action>
+            <action method="addJs" ifconfig="carriers/dellin/jquery">
+                <script>jquery/jqueryui/jquery-ui.min.js</script>
+            </action>
+            <action method="addItem" ifconfig="carriers/dellin/jquery">
+                <type>js_css</type>
+                <name>jquery/jqueryui/jquery-ui.css</name>
+            </action>
+            <action method="addItem" ifconfig="carriers/dellin/json">
+                <type>skin_js</type>
+                <name>js/dellin.js</name>
+            </action>
+        </reference>
+    </default>
+</layout>

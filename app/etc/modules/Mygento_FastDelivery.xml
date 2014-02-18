@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Mygento_FastDelivery>
+            <active>true</active>
+            <codePool>local</codePool>
+			<depends>
+                <Mage_Shipping/>
+            </depends>
+        </Mygento_FastDelivery>
+    </modules>
+</config>

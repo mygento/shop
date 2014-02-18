@@ -21,14 +21,14 @@
  *
  * @category    Mage
  * @package     Mage_CatalogInventory
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
 <config>
     <modules>
         <Mage_CatalogInventory>
-            <version>1.6.0.0</version>
+            <version>1.6.0.0.2</version>
         </Mage_CatalogInventory>
     </modules>
     <global>
@@ -78,6 +78,14 @@
             </cataloginventory>
         </blocks>
         <events>
+            <catalog_block_product_status_display>
+                <observers>
+                    <inventory>
+                        <class>cataloginventory/observer</class>
+                        <method>displayProductStatusInfo</method>
+                    </inventory>
+                </observers>
+            </catalog_block_product_status_display>
             <catalog_product_load_after>
                 <observers>
                     <inventory>
@@ -206,6 +214,22 @@
                     </cataloginventory>
                 </observers>
             </prepare_catalog_product_index_select>
+            <end_index_events_cataloginventory_stock_item_save>
+                <observers>
+                    <cataloginventory>
+                        <class>cataloginventory/observer</class>
+                        <method>reindexProductsMassAction</method>
+                    </cataloginventory>
+                </observers>
+            </end_index_events_cataloginventory_stock_item_save>
+            <end_process_event_cataloginventory_stock_item_save>
+                <observers>
+                    <cataloginventory>
+                        <class>cataloginventory/observer</class>
+                        <method>reindexProductsMassAction</method>
+                    </cataloginventory>
+                </observers>
+            </end_process_event_cataloginventory_stock_item_save>
         </events>
         <catalog>
             <product>
@@ -271,6 +295,16 @@
                 </Mage_CatalogInventory>
             </modules>
         </translate>
+        <events>
+            <after_reindex_process_cataloginventory_stock>
+                <observers>
+                    <cataloginventory>
+                        <class>cataloginventory/observer</class>
+                        <method>reindexProductsMassAction</method>
+                    </cataloginventory>
+                </observers>
+            </after_reindex_process_cataloginventory_stock>
+        </events>
     </adminhtml>
     <default>
         <cataloginventory>
@@ -279,6 +313,7 @@
                 <can_back_in_stock>1</can_back_in_stock>
                 <show_out_of_stock>0</show_out_of_stock>
                 <stock_threshold_qty>0</stock_threshold_qty>
+                <display_product_stock_status>1</display_product_stock_status>
             </options>
             <item_options>
                 <manage_stock>1</manage_stock>

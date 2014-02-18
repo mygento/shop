@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Catalog
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -138,8 +138,12 @@ class Mage_Catalog_Model_Product_Attribute_Backend_Media extends Mage_Eav_Model_
                 if (!isset($image['value_id'])) {
                     continue;
                 }
-                $duplicate[$image['value_id']] = $this->_copyImage($image['file']);
-                $newImages[$image['file']] = $duplicate[$image['value_id']];
+                $newFile = $this->_copyImage($image['file']);
+                $newImages[$image['file']] = array(
+                    'new_file' => $newFile,
+                    'label' => $image['label']
+                );
+                $duplicate[$image['value_id']] = $newFile;
             }
 
             $value['duplicate'] = $duplicate;
@@ -162,6 +166,8 @@ class Mage_Catalog_Model_Product_Attribute_Backend_Media extends Mage_Eav_Model_
                 $object->setData($mediaAttrCode.'_label', $existImages[$attrData]['label']);
             }
         }
+
+        Mage::dispatchEvent('catalog_product_media_save_before', array('product' => $object, 'images' => $value));
 
         $object->setData($attrCode, $value);
 
@@ -267,6 +273,9 @@ class Mage_Catalog_Model_Product_Attribute_Backend_Media extends Mage_Eav_Model_
         if (!$file || !file_exists($file)) {
             Mage::throwException(Mage::helper('catalog')->__('Image does not exist.'));
         }
+
+        Mage::dispatchEvent('catalog_product_media_add_image', array('product' => $product, 'image' => $file));
+
         $pathinfo = pathinfo($file);
         $imgExtensions = array('jpg','jpeg','gif','png');
         if (!isset($pathinfo['extension']) || !in_array(strtolower($pathinfo['extension']), $imgExtensions)) {

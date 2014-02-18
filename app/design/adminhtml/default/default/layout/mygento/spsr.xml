@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<layout>
+    <adminhtml_sales_order_view>
+        <reference name="sales_order_tabs">
+            <action method="addTab" ifconfig="carriers/spsr/active">
+                <name>order_spsr</name>
+                <block>spsr/adminhtml_order_view_tab_spsr</block>
+            </action>
+        </reference>
+    </adminhtml_sales_order_view>
+</layout>

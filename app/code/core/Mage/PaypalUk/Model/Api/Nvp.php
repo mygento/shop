@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_PaypalUk
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -85,61 +85,66 @@ class Mage_PaypalUk_Model_Api_Nvp extends Mage_Paypal_Model_Api_Nvp
      */
     protected $_globalMap = array(
         // each call
-        'PARTNER'       => 'partner',
-        'VENDOR'        => 'vendor',
-        'USER'          => 'user',
-        'PWD'           => 'password',
-        'BUTTONSOURCE'  => 'build_notation_code',
-        'TENDER'        => 'tender',
+        'PARTNER' => 'partner',
+        'VENDOR' => 'vendor',
+        'USER' => 'user',
+        'PWD' => 'password',
+        'BUTTONSOURCE' => 'build_notation_code',
+        'TENDER' => 'tender',
         // commands
-        'RETURNURL'     => 'return_url',
-        'CANCELURL'     => 'cancel_url',
-        'INVNUM'        => 'inv_num',
-        'TOKEN'         => 'token',
+        'RETURNURL' => 'return_url',
+        'CANCELURL' => 'cancel_url',
+        'INVNUM' => 'inv_num',
+        'TOKEN' => 'token',
         'CORRELATIONID' => 'correlation_id',
-        'CUSTIP'         => 'ip_address',
-        'NOTIFYURL'         => 'notify_url',
-        'NOTE'              => 'note',
+        'CUSTIP' => 'ip_address',
+        'NOTIFYURL' => 'notify_url',
+        'NOTE' => 'note',
         // style settings
-        'PAGESTYLE'      => 'page_style',
-        'HDRIMG'         => 'hdrimg',
+        'PAGESTYLE' => 'page_style',
+        'HDRIMG' => 'hdrimg',
         'HDRBORDERCOLOR' => 'hdrbordercolor',
-        'HDRBACKCOLOR'   => 'hdrbackcolor',
-        'PAYFLOWCOLOR'   => 'payflowcolor',
-        'LOCALECODE'     => 'locale_code',
+        'HDRBACKCOLOR' => 'hdrbackcolor',
+        'PAYFLOWCOLOR' => 'payflowcolor',
+        'LOCALECODE' => 'locale_code',
 
         // transaction info
-        'PPREF'   => 'paypal_transaction_id',//We need to store paypal trx id for correct IPN working
-        'PNREF'   => 'transaction_id',
-        'ORIGID'    => 'authorization_id',
-        'CAPTURECOMPLETE'    => 'complete_type',
-        'AMT'           => 'amount',
-        'AVSADDR'       => 'address_verification',
-        'AVSZIP'        =>  'postcode_verification',
+        'PPREF' => 'paypal_transaction_id', //We need to store paypal trx id for correct IPN working
+        'PAYMENTINFO_0_TRANSACTIONID' => 'paypal_transaction_id',
+        'TRANSACTIONID' => 'paypal_transaction_id',
+        'REFUNDTRANSACTIONID' => 'paypal_transaction_id',
+
+        'PNREF' => 'transaction_id',
+        'ORIGID' => 'authorization_id',
+        'CAPTURECOMPLETE' => 'complete_type',
+        'AMT' => 'amount',
+        'AVSADDR' => 'address_verification',
+        'AVSZIP' => 'postcode_verification',
 
         // payment/billing info
-        'CURRENCY'  => 'currency_code',
+        'CURRENCY' => 'currency_code',
+        'PAYMENTSTATUS' => 'payment_status',
         'PENDINGREASON' => 'pending_reason',
         'PAYERID' => 'payer_id',
         'PAYERSTATUS' => 'payer_status',
-        'EMAIL'         => 'email',
+        'EMAIL' => 'email',
         // backwards compatibility
-        'FIRSTNAME'     => 'firstname',
-        'LASTNAME'      => 'lastname',
+        'FIRSTNAME' => 'firstname',
+        'LASTNAME' => 'lastname',
         // paypal direct credit card information
-        'ACCT'           => 'credit_card_number',
-        'EXPDATE'        => 'credit_card_expiration_date',
-        'CVV2'           => 'credit_card_cvv2',
-        'CARDSTART'      => 'maestro_solo_issue_date', // MMYY, including leading zero
-        'CARDISSUE'    => 'maestro_solo_issue_number',
-        'CVV2MATCH'      => 'cvv2_check_result',
+        'ACCT' => 'credit_card_number',
+        'EXPDATE' => 'credit_card_expiration_date',
+        'CVV2' => 'credit_card_cvv2',
+        'CARDSTART' => 'maestro_solo_issue_date', // MMYY, including leading zero
+        'CARDISSUE' => 'maestro_solo_issue_number',
+        'CVV2MATCH' => 'cvv2_check_result',
         // cardinal centinel
         'AUTHSTATUS3DS' => 'centinel_authstatus',
         'MPIVENDOR3DS' => 'centinel_mpivendor',
-        'CAVV'         => 'centinel_cavv',
-        'ECI'       => 'centinel_eci',
-        'XID'          => 'centinel_xid',
-        'VPAS'         => 'centinel_vpas_result',
+        'CAVV' => 'centinel_cavv',
+        'ECI' => 'centinel_eci',
+        'XID' => 'centinel_xid',
+        'VPAS' => 'centinel_vpas_result',
         'ECISUBMITTED3DS' => 'centinel_eci_result',
     );
 
@@ -163,6 +168,7 @@ class Mage_PaypalUk_Model_Api_Nvp extends Mage_Paypal_Model_Api_Nvp
         'AMT', 'CUSTIP', 'INVNUM',
         'CARDISSUE', 'CARDSTART',
         'AUTHSTATUS3DS', 'MPIVENDOR3DS', 'CAVV', 'ECI', 'XID',//cardinal centinel params
+        'TAXAMT', 'FREIGHTAMT'
     );
     protected $_doDirectPaymentResponse = array(
         'PNREF', 'PPREF', 'CORRELATIONID', 'CVV2MATCH', 'AVSADDR', 'AVSZIP', 'PENDINGREASON'
@@ -299,7 +305,11 @@ class Mage_PaypalUk_Model_Api_Nvp extends Mage_Paypal_Model_Api_Nvp
      *
      * @var array
      */
-    protected $_lineItemTotalExportMap = array();
+    protected $_lineItemTotalExportMap = array(
+        Mage_Paypal_Model_Cart::TOTAL_TAX      => 'TAXAMT',
+        Mage_Paypal_Model_Cart::TOTAL_SHIPPING => 'FREIGHTAMT',
+    );
+
     protected $_lineItemExportItemsFormat = array(
         'name'   => 'L_NAME%d',
         'qty'    => 'L_QTY%d',
@@ -323,7 +333,7 @@ class Mage_PaypalUk_Model_Api_Nvp extends Mage_Paypal_Model_Api_Nvp
      * @var array
      */
     protected $_requiredResponseParams = array(
-        self::DO_DIRECT_PAYMENT => array('RESULT', 'PNREF', 'PPREF')
+        self::DO_DIRECT_PAYMENT => array('RESULT', 'PNREF')
     );
 
     /**
@@ -580,5 +590,52 @@ class Mage_PaypalUk_Model_Api_Nvp extends Mage_Paypal_Model_Api_Nvp
             $request['SHIPTOCOUNTRY'] = 'US';
             $request['SHIPTOSTATE']   = 'PR';
         }
+    }
+
+    /**
+     * Checking negative line items
+     *
+     * @param array $request
+     * @param int $i
+     * @return null|true
+     */
+    protected function _exportLineItems(array &$request, $i = 0)
+    {
+        $requestBefore = $request;
+        $result = parent::_exportLineItems($request, $i);
+        if ($this->getIsLineItemsEnabled() && $this->_cart->hasNegativeItemAmount()) {
+            $this->_lineItemTotalExportMap = array(
+                Mage_Paypal_Model_Cart::TOTAL_TAX       => 'TAXAMT',
+                Mage_Paypal_Model_Cart::TOTAL_SHIPPING  => 'FREIGHTAMT',
+                'amount'                                => 'PAYMENTREQUEST_0_ITEMAMT',
+            );
+            $this->_lineItemExportItemsFormat = array(
+                'name'   => 'L_PAYMENTREQUEST_0_NAME%d',
+                'qty'    => 'L_PAYMENTREQUEST_0_QTY%d',
+                'amount' => 'L_PAYMENTREQUEST_0_AMT%d',
+            );
+            $request = $requestBefore;
+            $result = parent::_exportLineItems($request, $i);
+            $paypalNvp = new Mage_Paypal_Model_Api_Nvp();
+            $this->_doCaptureResponse = $paypalNvp->_doCaptureResponse;
+            $this->_refundTransactionResponse = $paypalNvp->_refundTransactionResponse;
+            $this->_getTransactionDetailsResponse = $paypalNvp->_getTransactionDetailsResponse;
+            $this->_paymentInformationResponse = $paypalNvp->_paymentInformationResponse;
+            $this->_headers[] = 'PAYPAL-NVP: Y';
+            $this->_setSpecificForNegativeLineItems();
+        }
+        return $result;
+    }
+
+    /**
+     * Set specific data when negative line item case
+     */
+    protected function _setSpecificForNegativeLineItems()
+    {
+        $index = array_search('PPREF', $this->_doDirectPaymentResponse);
+        if (false !== $index) {
+            unset($this->_doDirectPaymentResponse[$index]);
+        }
+        $this->_doDirectPaymentResponse[] = 'TRANSACTIONID';
     }
 }

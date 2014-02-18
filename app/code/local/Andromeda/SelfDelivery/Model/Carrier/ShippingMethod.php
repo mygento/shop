@@ -1,7 +1,7 @@
 <?php
 class Andromeda_SelfDelivery_Model_Carrier_ShippingMethod extends Mage_Shipping_Model_Carrier_Abstract
 {
-	protected $_code = 'selfdelivery';
+	protected $_code = 'selfdelivery_free';
 
      public function collectRates(Mage_Shipping_Model_Rate_Request $request)  
      {  

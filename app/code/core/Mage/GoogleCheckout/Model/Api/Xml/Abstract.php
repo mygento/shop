@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_GoogleCheckout
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -66,7 +66,10 @@ abstract class Mage_GoogleCheckout_Model_Api_Xml_Abstract extends Varien_Object
     public function getServerType()
     {
         if (!$this->hasData('server_type')) {
-            $this->setData('server_type', Mage::getStoreConfig('google/checkout/sandbox', $this->getStoreId()) ? "sandbox" : "");
+            $this->setData(
+                'server_type',
+                Mage::getStoreConfig('google/checkout/sandbox', $this->getStoreId()) ? "sandbox" : ""
+            );
         }
         return $this->getData('server_type');
     }
@@ -121,6 +124,11 @@ abstract class Mage_GoogleCheckout_Model_Api_Xml_Abstract extends Varien_Object
      */
     public function getGResponse()
     {
+        $merchantId = $this->getMerchantId();
+        $merchantKey = $this->getMerchantKey();
+        if (empty($merchantId) || empty($merchantKey)) {
+            Mage::throwException(Mage::helper('googlecheckout')->__('GoogleCheckout is not configured'));
+        }
         if (!$this->hasData('g_response')) {
             $this->setData('g_response', new GoogleResponse(
                 $this->getMerchantId(),
@@ -173,6 +181,7 @@ abstract class Mage_GoogleCheckout_Model_Api_Xml_Abstract extends Varien_Object
             $response = preg_split('/^\r?$/m', $response, 2);
             $response = trim($response[1]);
             $debugData['result'] = $response;
+            $http->close();
         }
         catch (Exception $e) {
             $debugData['result'] = array('error' => $e->getMessage(), 'code' => $e->getCode());
@@ -183,7 +192,9 @@ abstract class Mage_GoogleCheckout_Model_Api_Xml_Abstract extends Varien_Object
         $this->getApi()->debugData($debugData);
         $result = @simplexml_load_string($response);
         if (!$result) {
-            $result = simplexml_load_string('<error><error-message>Invalid response from Google Checkout server</error-message></error>');
+            $result = simplexml_load_string(
+                '<error><error-message>Invalid response from Google Checkout server</error-message></error>'
+            );
         }
         if ($result->getName() == 'error') {
             $this->setError($this->__('Google Checkout: %s', (string)$result->{'error-message'}));
@@ -199,7 +210,10 @@ abstract class Mage_GoogleCheckout_Model_Api_Xml_Abstract extends Varien_Object
 
     protected function _getCallbackUrl()
     {
-        return Mage::getUrl('googlecheckout/api', array('_forced_secure'=>Mage::getStoreConfig('google/checkout/use_secure_callback_url', $this->getStoreId())));
+        return Mage::getUrl(
+            'googlecheckout/api',
+            array('_forced_secure'=>Mage::getStoreConfig('google/checkout/use_secure_callback_url',$this->getStoreId()))
+        );
     }
 
     /**

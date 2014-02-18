@@ -1,0 +1,129 @@
+<?xml version="1.0" ?>
+<config>
+    <modules>
+        <Mygento_Virtrans>
+            <version>1.0.0</version>
+        </Mygento_Virtrans>
+    </modules>
+    <global>
+        <models>
+            <virtrans>
+                <class>Mygento_Virtrans_Model</class>
+                <resourceModel>virtrans_mysql4</resourceModel>
+            </virtrans>
+            <virtrans_mysql4>
+                <class>Mygento_virtrans_Model_Mysql4</class>
+                <entities>
+                    <virtrans>
+                        <table>mygento_virtrans</table>
+                    </virtrans>
+                </entities>
+            </virtrans_mysql4>
+        </models>
+        <helpers>
+            <virtrans>
+                <class>Mygento_Virtrans_Helper</class>
+            </virtrans>
+        </helpers>
+        <blocks>
+            <virtrans>
+                <class>Mygento_Virtrans_Block</class>
+            </virtrans>
+        </blocks>
+        <resources>
+            <virtrans_setup>
+                <setup>
+                    <module>Mygento_Virtrans</module>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </virtrans_setup>
+            <virtrans_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </virtrans_write>
+            <virtrans_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </virtrans_read>
+        </resources>
+    </global>
+    <adminhtml>
+        <translate>
+            <modules>
+                <virtrans>
+                    <files>
+                        <default>Mygento_Virtrans.csv</default>
+                    </files>
+                </virtrans>
+            </modules>
+        </translate>
+        <menu>
+            <mygento translate="title" module="virtrans">
+                <title>Mygento Modules</title>
+                <sort_order>60</sort_order>
+                <children>
+                    <virtrans translate="title" module="virtrans">
+                        <title>Доставка Виртанс</title>
+                        <sort_order>30</sort_order>
+                        <children>
+                            <settings translate="title" module="virtrans">
+                                <title>Settings</title>
+                                <action>adminhtml/system_config/edit/section/carriers</action>
+                                <sort_order>100</sort_order>
+                            </settings>
+                            <items module="virtrans">
+                                <title>Сетка тарифов</title>
+                                <sort_order>0</sort_order>
+                                <action>virtrans/adminhtml_virtrans</action>
+                            </items>
+                        </children>
+                    </virtrans>
+                    
+                </children>
+            </mygento>
+        </menu>
+        <layout>
+            <updates>
+                <virtrans>
+                    <file>mygento/virtrans.xml</file>
+                </virtrans>
+            </updates>
+        </layout>
+    </adminhtml>
+    <frontend>
+        <translate>
+            <modules>
+                <virtrans>
+                    <files>
+                        <default>Mygento_Virtrans.csv</default>
+                    </files>
+                </virtrans>
+            </modules>
+        </translate>
+    </frontend>
+    <admin>
+        <routers>
+            <virtrans>
+                <use>admin</use>
+                <args>
+                    <module>Mygento_Virtrans</module>
+                    <frontName>virtrans</frontName>
+                </args>
+            </virtrans>
+        </routers>
+    </admin>
+    <default>
+        <carriers>
+            <virtrans>
+                <active>1</active>
+                <model>virtrans/shipping</model>
+                <name>Virtrans</name>
+                <title>Virtrans Method</title>
+            </virtrans>
+        </carriers>
+    </default>
+</config>

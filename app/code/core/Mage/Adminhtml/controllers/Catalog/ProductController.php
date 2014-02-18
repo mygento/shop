@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -510,8 +510,17 @@ class Mage_Adminhtml_Catalog_ProductController extends Mage_Adminhtml_Controller
                 }
             }
             $productData = $this->_filterDates($productData, $dateFields);
-
             $product->addData($productData);
+
+            /* set restrictions for date ranges */
+            $resource = $product->getResource();
+            $resource->getAttribute('special_from_date')
+                ->setMaxValue($product->getSpecialToDate());
+            $resource->getAttribute('news_from_date')
+                ->setMaxValue($product->getNewsToDate());
+            $resource->getAttribute('custom_design_from')
+                ->setMaxValue($product->getCustomDesignTo());
+
             $product->validate();
             /**
              * @todo implement full validation process with errors returning which are ignoring now
@@ -552,12 +561,7 @@ class Mage_Adminhtml_Catalog_ProductController extends Mage_Adminhtml_Controller
         $product     = $this->_initProduct();
         $productData = $this->getRequest()->getPost('product');
         if ($productData) {
-            if (!isset($productData['stock_data']['use_config_manage_stock'])) {
-                $productData['stock_data']['use_config_manage_stock'] = 0;
-            }
-            if (isset($productData['stock_data']['qty']) && (float)$productData['stock_data']['qty'] > self::MAX_QTY_VALUE) {
-                $productData['stock_data']['qty'] = self::MAX_QTY_VALUE;
-            }
+            $this->_filterStockData($productData['stock_data']);
         }
 
         /**
@@ -669,6 +673,31 @@ class Mage_Adminhtml_Catalog_ProductController extends Mage_Adminhtml_Controller
         return $product;
     }
 
+    /**
+     * Filter product stock data
+     *
+     * @param array $stockData
+     * @return null
+     */
+    protected function _filterStockData(&$stockData)
+    {
+        if (is_null($stockData)) {
+            return;
+        }
+        if (!isset($stockData['use_config_manage_stock'])) {
+            $stockData['use_config_manage_stock'] = 0;
+        }
+        if (isset($stockData['qty']) && (float)$stockData['qty'] > self::MAX_QTY_VALUE) {
+            $stockData['qty'] = self::MAX_QTY_VALUE;
+        }
+        if (isset($stockData['min_qty']) && (int)$stockData['min_qty'] < 0) {
+            $stockData['min_qty'] = 0;
+        }
+        if (!isset($stockData['is_decimal_divided']) || $stockData['is_qty_decimal'] == 0) {
+            $stockData['is_decimal_divided'] = 0;
+        }
+    }
+
     public function categoriesJsonAction()
     {
         $product = $this->_initProduct();
@@ -691,29 +720,17 @@ class Mage_Adminhtml_Catalog_ProductController extends Mage_Adminhtml_Controller
 
         $data = $this->getRequest()->getPost();
         if ($data) {
-            if (!isset($data['product']['stock_data']['use_config_manage_stock'])) {
-                $data['product']['stock_data']['use_config_manage_stock'] = 0;
-            }
+            $this->_filterStockData($data['product']['stock_data']);
+
             $product = $this->_initProductSave();
 
             try {
                 $product->save();
                 $productId = $product->getId();
 
-                /**
-                 * Do copying data to stores
-                 */
                 if (isset($data['copy_to_stores'])) {
-                    foreach ($data['copy_to_stores'] as $storeTo=>$storeFrom) {
-                        $newProduct = Mage::getModel('catalog/product')
-                            ->setStoreId($storeFrom)
-                            ->load($productId)
-                            ->setStoreId($storeTo)
-                            ->save();
-                    }
+                   $this->_copyAttributesBetweenStores($data['copy_to_stores'], $product);
                 }
-
-                Mage::getModel('catalogrule/rule')->applyAllRulesToProduct($productId);
 
                 $this->_getSession()->addSuccess($this->__('The product has been saved.'));
             } catch (Mage_Core_Exception $e) {
@@ -741,6 +758,28 @@ class Mage_Adminhtml_Catalog_ProductController extends Mage_Adminhtml_Controller
         } else {
             $this->_redirect('*/*/', array('store'=>$storeId));
         }
+    }
+
+    /**
+     * Duplicates product attributes between stores.
+     * @param array $stores list of store pairs: array(fromStore => toStore, fromStore => toStore,..)
+     * @param Mage_Catalog_Model_Product $product whose attributes should be copied
+     * @return $this
+     */
+    protected function _copyAttributesBetweenStores(array $stores, Mage_Catalog_Model_Product $product)
+    {
+        foreach ($stores as $storeTo => $storeFrom) {
+            $productInStore = Mage::getModel('catalog/product')
+                ->setStoreId($storeFrom)
+                ->load($product->getId());
+            Mage::dispatchEvent('product_duplicate_attributes', array(
+                'product' => $productInStore,
+                'storeTo' => $storeTo,
+                'storeFrom' => $storeFrom,
+            ));
+            $productInStore->setStoreId($storeTo)->save();
+        }
+        return $this;
     }
 
     /**

@@ -20,10 +20,18 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+/**
+ * Xmlconnect Add row form element
+ *
+ * @deprecated will be removed
+ * @category    Mage
+ * @package     Mage_XmlConnect
+ * @author      Magento Core Team <core@magentocommerce.com>
+ */
 class Mage_XmlConnect_Block_Adminhtml_Mobile_Form_Element_Addrow extends Varien_Data_Form_Element_Button
 {
     /**
@@ -33,10 +41,9 @@ class Mage_XmlConnect_Block_Adminhtml_Mobile_Form_Element_Addrow extends Varien_
      */
     public function getElementHtml()
     {
-        $html = $this->getBeforeElementHtml() . '<button id="'.$this->getHtmlId().'" name="'.$this->getName()
-            . '" value="'.$this->getEscapedValue().'" '
-            . $this->serialize($this->getHtmlAttributes())
-            . ' ><span>'.$this->getEscapedValue().'</span></button>'.$this->getAfterElementHtml();
+        $html = $this->getBeforeElementHtml() . '<button id="'.$this->getHtmlId() . '" name="' . $this->getName()
+            . '" value="'.$this->getEscapedValue() . '" ' . $this->serialize($this->getHtmlAttributes()) . ' ><span>'
+            . $this->getEscapedValue() . '</span></button>' . $this->getAfterElementHtml();
         return $html;
     }
 
@@ -52,31 +59,31 @@ class Mage_XmlConnect_Block_Adminhtml_Mobile_Form_Element_Addrow extends Varien_
 
     /**
      * Return label html code
-     * 
+     *
      * @param string $idSuffix
      * @return string
      */
     public function getLabelHtml($idSuffix = '')
     {
-        if (!is_null($this->getLabel())) {
-            $html = '<label>'.$this->getLabel()
-                . ( $this->getRequired() ? ' <span class="required">*</span>' : '' ).'</label>';
+        if ($this->getLabel() !== null) {
+            $html = '<label  for="' . $this->getHtmlId() . $idSuffix . '">' . $this->getLabel()
+                . ($this->getRequired() ? ' <span class="required">*</span>' : '') . '</label>';
         } else {
             $html = '';
         }
         return $html;
     }
-    
+
     /**
      * Overriding toHtml parent method
      * Adding addrow Block to element renderer
-     * 
+     *
      * @return string
      */
     public function toHtml()
     {
         $blockClassName = Mage::getConfig()->getBlockClassName('adminhtml/template');
-        $jsBlock = new $blockClassName;
+        $jsBlock = Mage::getModel($blockClassName);
         $jsBlock->setTemplate('xmlconnect/form/element/addrow.phtml');
         $jsBlock->setOptions($this->getOptions());
         return parent::toHtml() . $jsBlock->toHtml();

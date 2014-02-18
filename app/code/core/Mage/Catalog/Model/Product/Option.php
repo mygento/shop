@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Catalog
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -54,30 +54,107 @@
  */
 class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
 {
+    /**
+     * Option group text
+     */
     const OPTION_GROUP_TEXT   = 'text';
+
+    /**
+     * Option group file
+     */
     const OPTION_GROUP_FILE   = 'file';
+
+    /**
+     * Option group select
+     */
     const OPTION_GROUP_SELECT = 'select';
+
+    /**
+     * Option group date
+     */
     const OPTION_GROUP_DATE   = 'date';
 
+    /**
+     * Option type field
+     */
     const OPTION_TYPE_FIELD     = 'field';
+
+    /**
+     * Option type area
+     */
     const OPTION_TYPE_AREA      = 'area';
+
+    /**
+     * Option group file
+     */
     const OPTION_TYPE_FILE      = 'file';
+
+    /**
+     * Option type drop down
+     */
     const OPTION_TYPE_DROP_DOWN = 'drop_down';
+
+    /**
+     * Option type radio
+     */
     const OPTION_TYPE_RADIO     = 'radio';
+
+    /**
+     * Option type checkbox
+     */
     const OPTION_TYPE_CHECKBOX  = 'checkbox';
+
+    /**
+     * Option type multiple
+     */
     const OPTION_TYPE_MULTIPLE  = 'multiple';
+
+    /**
+     * Option type date
+     */
     const OPTION_TYPE_DATE      = 'date';
+
+    /**
+     * Option type date/time
+     */
     const OPTION_TYPE_DATE_TIME = 'date_time';
+
+    /**
+     * Option type time
+     */
     const OPTION_TYPE_TIME      = 'time';
 
+    /**
+     * Product instance
+     *
+     * @var Mage_Catalog_Model_Product
+     */
     protected $_product;
 
+    /**
+     * Options
+     *
+     * @var array
+     */
     protected $_options = array();
 
+    /**
+     * Value instance
+     *
+     * @var Mage_Catalog_Model_Product_Option_Value
+     */
     protected $_valueInstance;
 
+    /**
+     * Values
+     *
+     * @var array
+     */
     protected $_values = array();
 
+    /**
+     * Constructor
+     */
     protected function _construct()
     {
         $this->_init('catalog/product_option');
@@ -110,6 +187,11 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
         return null;
     }
 
+    /**
+     * Get values
+     *
+     * @return array
+     */
     public function getValues()
     {
         return $this->_values;
@@ -266,7 +348,11 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
             } else {
                 if ($this->getData('previous_type') != '') {
                     $previousType = $this->getData('previous_type');
-                    //if previous option has dfferent group from one is came now need to remove all data of previous group
+
+                    /**
+                     * if previous option has different group from one is came now
+                     * need to remove all data of previous group
+                     */
                     if ($this->getGroupByType($previousType) != $this->getGroupByType($this->getData('type'))) {
 
                         switch ($this->getGroupByType($previousType)) {
@@ -302,6 +388,11 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
         return $this;
     }
 
+    /**
+     * After save
+     *
+     * @return Mage_Core_Model_Abstract
+     */
     protected function _afterSave()
     {
         $this->getValueInstance()->unsetValues();
@@ -326,11 +417,11 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
      * @param bool $flag
      * @return decimal
      */
-    public function getPrice($flag=false)
+    public function getPrice($flag = false)
     {
         if ($flag && $this->getPriceType() == 'percent') {
             $basePrice = $this->getProduct()->getFinalPrice();
-            $price = $basePrice*($this->_getData('price')/100);
+            $price = $basePrice * ($this->_getData('price')/100);
             return $price;
         }
         return $this->_getData('price');
@@ -364,7 +455,7 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
      * get Product Option Collection
      *
      * @param Mage_Catalog_Model_Product $product
-     * @return Mage_Catalog_Model_Resource_Eav_Mysql4_Product_Option_Collection
+     * @return Mage_Catalog_Model_Resource_Product_Option_Collection
      */
     public function getProductOptionCollection(Mage_Catalog_Model_Product $product)
     {
@@ -373,9 +464,13 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
             ->addTitleToResult($product->getStoreId())
             ->addPriceToResult($product->getStoreId())
             ->setOrder('sort_order', 'asc')
-            ->setOrder('title', 'asc')
-            ->addValuesToResult($product->getStoreId());
+            ->setOrder('title', 'asc');
 
+        if ($this->getAddRequiredFilter()) {
+            $collection->addRequiredFilter($this->getAddRequiredFilterValue());
+        }
+
+        $collection->addValuesToResult($product->getStoreId());
         return $collection;
     }
 
@@ -417,7 +512,8 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
         $this->setProductId(null);
         $this->setOptionId(null);
         $newOption = $this->__toArray();
-        if ($_values = $this->getValues()) {
+        $_values = $this->getValues();
+        if ($_values) {
             $newValuesArray = array();
             foreach ($_values as $_value) {
                 $newValuesArray[] = $_value->prepareValueForDuplicate();
@@ -479,5 +575,20 @@ class Mage_Catalog_Model_Product_Option extends Mage_Core_Model_Abstract
             }
         }
         return $this;
+    }
+
+    /**
+     * Check whether custom option could have multiple values
+     *
+     * @return bool
+     */
+    public function isMultipleType()
+    {
+        switch ($this->getType()) {
+            case self::OPTION_TYPE_MULTIPLE:
+            case self::OPTION_TYPE_CHECKBOX:
+                return true;
+        }
+        return false;
     }
 }

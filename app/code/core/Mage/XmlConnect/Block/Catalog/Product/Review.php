@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -48,13 +48,14 @@ class Mage_XmlConnect_Block_Catalog_Product_Review extends Mage_XmlConnect_Block
     public function reviewToXmlObject(Mage_Review_Model_Review $review, $itemNodeName = 'item')
     {
         $rating = 0;
+        /** @var $item Mage_XmlConnect_Model_Simplexml_Element */
         $item = Mage::getModel('xmlconnect/simplexml_element', '<' . $itemNodeName . '></' . $itemNodeName . '>');
         if ($review->getId()) {
             $item->addChild('review_id', $review->getId());
             $item->addChild('created_at', $this->formatDate($review->getCreatedAt()));
-            $item->addChild('title', $item->xmlentities(strip_tags($review->getTitle())));
-            $item->addChild('nickname', $item->xmlentities(strip_tags($review->getNickname())));
-            $detail = $item->xmlentities($review->getDetail());
+            $item->addChild('title', $item->escapeXml($review->getTitle()));
+            $item->addChild('nickname', $item->escapeXml($review->getNickname()));
+            $detail = $item->escapeXml($review->getDetail());
             if ($itemNodeName == 'item') {
                 $remainder = '';
                 $deviceType = Mage::helper('xmlconnect')->getDeviceType();
@@ -72,7 +73,6 @@ class Mage_XmlConnect_Block_Catalog_Product_Review extends Mage_XmlConnect_Block
             if ($rating) {
                 $item->addChild('rating_votes', $rating);
             }
-
         }
         return $item;
     }
@@ -87,5 +87,4 @@ class Mage_XmlConnect_Block_Catalog_Product_Review extends Mage_XmlConnect_Block
         $review = Mage::getModel('review/review')->load((int)$this->getRequest()->getParam('id', 0));
         return $this->reviewToXmlObject($review, 'review')->asNiceXml();
     }
-
 }

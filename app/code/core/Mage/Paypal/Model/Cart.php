@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Paypal
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -213,7 +213,7 @@ class Mage_Paypal_Model_Cart
 
     /**
      * Remove item from cart by identifier
-     * 
+     *
      * @param string $identifier
      * @return bool
      */
@@ -335,17 +335,17 @@ class Mage_Paypal_Model_Cart
             );
         }
 
-        $this->_validate();
-        // if cart items are invalid, prepare cart for transfer without line items
-        if (!$this->_areItemsValid) {
-            $this->removeItem($shippingItemId);
-        }
-
         // compound non-regular items into subtotal
         foreach ($this->_items as $key => $item) {
             if ($key > $lastRegularItemKey && $item->getAmount() != 0) {
                 $this->_totals[self::TOTAL_SUBTOTAL] += $item->getAmount();
             }
+        }
+
+        $this->_validate();
+        // if cart items are invalid, prepare cart for transfer without line items
+        if (!$this->_areItemsValid) {
+            $this->removeItem($shippingItemId);
         }
 
         $this->_shouldRender = false;
@@ -413,6 +413,16 @@ class Mage_Paypal_Model_Cart
         }
 
         $this->_areItemsValid = $this->_areItemsValid && $this->_areTotalsValid;
+    }
+
+    /**
+     * Check whether items are valid
+     *
+     * @return bool
+     */
+    public function areItemsValid()
+    {
+        return $this->_areItemsValid;
     }
 
     /**
@@ -494,5 +504,20 @@ class Mage_Paypal_Model_Cart
     {
         $this->_totals[self::TOTAL_TAX] += (float)$salesEntity->getBaseHiddenTaxAmount();
         $this->_totals[self::TOTAL_TAX] += (float)$salesEntity->getBaseShippingHiddenTaxAmount();
+    }
+
+    /**
+     * Check whether any item has negative amount
+     *
+     * @return bool
+     */
+    public function hasNegativeItemAmount()
+    {
+        foreach ($this->_items as $item) {
+            if ($item->getAmount() < 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

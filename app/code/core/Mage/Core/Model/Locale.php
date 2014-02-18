@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Core
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -285,16 +285,20 @@ class Mage_Core_Model_Locale
     /**
      * Retrieve days of week option list
      *
+     * @param bool $preserveCodes
+     * @param bool $ucFirstCode
+     *
      * @return array
      */
-    public function getOptionWeekdays()
+    public function getOptionWeekdays($preserveCodes = false, $ucFirstCode = false)
     {
         $options= array();
         $days = $this->getTranslationList('days');
-        foreach (array_values($days['format']['wide']) as $code => $name) {
+        $days = $preserveCodes ? $days['format']['wide']  : array_values($days['format']['wide']);
+        foreach ($days as $code => $name) {
             $options[] = array(
                'label' => $name,
-               'value' => $code,
+               'value' => $ucFirstCode ? ucfirst($code) : $code,
             );
         }
         return $options;
@@ -407,13 +411,25 @@ class Mage_Core_Model_Locale
 
     /**
      * Retrieve ISO date format
+     * and filter for 2 digit year format, it must be 4 digits
      *
      * @param   string $type
      * @return  string
      */
     public function getDateFormat($type=null)
     {
-        return $this->getTranslation($type, 'date');
+        return preg_replace('/(?<!y)yy(?!y)/', 'yyyy', $this->getTranslation($type, 'date'));
+    }
+
+    /**
+     * Retrieve short date format with 4-digit year
+     *
+     * @return  string
+     */
+    public function getDateFormatWithLongYear()
+    {
+        return preg_replace('/(?<!y)yy(?!y)/', 'yyyy',
+            $this->getTranslation(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT, 'date'));
     }
 
     /**
@@ -463,25 +479,28 @@ class Mage_Core_Model_Locale
     /**
      * Create Zend_Date object for current locale
      *
-     * @param   mixed $date
-     * @param   string $part
-     * @return  Zend_Date
-     * @exception Zend_Date_Exception
+     * @param mixed              $date
+     * @param string             $part
+     * @param string|Zend_Locale $locale
+     * @param bool               $useTimezone
+     * @return Zend_Date
      */
-    public function date($date=null, $part=null, $locale=null, $useTimezone=true)
+    public function date($date = null, $part = null, $locale = null, $useTimezone = true)
     {
         if (is_null($locale)) {
             $locale = $this->getLocale();
         }
 
-        // try-catch block was here
+        if (empty($date)) {
+            // $date may be false, but Zend_Date uses strict compare
+            $date = null;
+        }
         $date = new Zend_Date($date, $part, $locale);
         if ($useTimezone) {
             if ($timezone = Mage::app()->getStore()->getConfig(self::XML_PATH_DEFAULT_TIMEZONE)) {
                 $date->setTimezone($timezone);
             }
         }
-        //$date->add(-(substr($date->get(Zend_Date::GMT_DIFF), 0,3)), Zend_Date::HOUR);
 
         return $date;
     }
@@ -553,18 +572,31 @@ class Mage_Core_Model_Locale
     {
         Varien_Profiler::start('locale/currency');
         if (!isset(self::$_currencyCache[$this->getLocaleCode()][$currency])) {
+            $options = array();
             try {
                 $currencyObject = new Zend_Currency($currency, $this->getLocale());
             } catch (Exception $e) {
-                $currencyObject = new Zend_Currency($this->getCurrency(), $this->getLocale());
-                $options = array(
-                        'name'      => $currency,
-                        'currency'  => $currency,
-                        'symbol'    => $currency
-                );
-                $currencyObject->setFormat($options);
+                /**
+                 * catch specific exceptions like "Currency 'USD' not found"
+                 * - back end falls with specific locals as Malaysia and etc.
+                 *
+                 * as we can see from Zend framework ticket
+                 * http://framework.zend.com/issues/browse/ZF-10038
+                 * zend team is not going to change it behaviour in the near time
+                 */
+                $currencyObject = new Zend_Currency($currency);
+                $options['name'] = $currency;
+                $options['currency'] = $currency;
+                $options['symbol'] = $currency;
             }
 
+            $options = new Varien_Object($options);
+            Mage::dispatchEvent('currency_display_options_forming', array(
+                'currency_options' => $options,
+                'base_code' => $currency
+            ));
+
+            $currencyObject->setFormat($options->toArray());
             self::$_currencyCache[$this->getLocaleCode()][$currency] = $currencyObject;
         }
         Varien_Profiler::stop('locale/currency');
@@ -585,8 +617,8 @@ class Mage_Core_Model_Locale
      * '2'054.52' = 2054.52
      * '2,46 GB' = 2.46
      *
-     * @param string|int $value
-     * @return float
+     * @param string|float|int $value
+     * @return float|null
      */
     public function getNumber($value)
     {
@@ -598,9 +630,8 @@ class Mage_Core_Model_Locale
             return floatval($value);
         }
 
-        //trim space and apos
-        $value = str_replace('\'', '', $value);
-        $value = str_replace(' ', '', $value);
+        //trim spaces and apostrophes
+        $value = str_replace(array('\'', ' '), '', $value);
 
         $separatorComa = strpos($value, ',');
         $separatorDot  = strpos($value, '.');
@@ -619,11 +650,10 @@ class Mage_Core_Model_Locale
         }
 
         return floatval($value);
-        //return Zend_Locale_Format::getNumber($value, array('locale' => $this->getLocaleCode()));
     }
 
     /**
-     * Functions returns array with price formating info for js function
+     * Functions returns array with price formatting info for js function
      * formatCurrency in js/varien/js.js
      *
      * @return array
@@ -731,7 +761,18 @@ class Mage_Core_Model_Locale
         return $this->getLocale()->getTranslation($value, $path, $this->getLocale());
     }
 
-/**
+    /**
+     * Replace all yy date format to yyyy
+     *
+     * @param $currentFormat
+     * @return mixed
+     */
+    protected function _convertYearTwoDigitTo4($currentFormat)
+    {
+        return preg_replace('/(\byy\b)/', 'yyyy', $currentFormat);
+    }
+
+    /**
      * Returns the localized country name
      *
      * @param  string             $value  Name to get detailed information about

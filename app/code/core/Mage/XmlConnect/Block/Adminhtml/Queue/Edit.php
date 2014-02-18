@@ -20,10 +20,17 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+/**
+ * Xmlconnect queue edit block
+ *
+ * @category    Mage
+ * @package     Mage_XmlConnect
+ * @author      Magento Core Team <core@magentocommerce.com>
+ */
 class Mage_XmlConnect_Block_Adminhtml_Queue_Edit extends Mage_Adminhtml_Block_Widget_Form_Container
 {
     /**
@@ -58,8 +65,7 @@ class Mage_XmlConnect_Block_Adminhtml_Queue_Edit extends Mage_Adminhtml_Block_Wi
     {
         $template = Mage::registry('current_template');
         $message  = Mage::registry('current_message');
-        return $message && !$message->getId() && $template && $template->getId()
-            ? $this->getUrl('*/*/template')
+        return $message && !$message->getId() && $template && $template->getId() ? $this->getUrl('*/*/template')
             : $this->getUrl('*/*/queue');
     }
 
@@ -72,7 +78,7 @@ class Mage_XmlConnect_Block_Adminhtml_Queue_Edit extends Mage_Adminhtml_Block_Wi
     {
         $message = Mage::registry('current_message');
         if ($message && $message->getId()) {
-            return $this->__('Edit AirMail Message Queue #%s', $this->htmlEscape($message->getId()));
+            return $this->__('Edit AirMail Message Queue #%s', $this->escapeHtml($message->getId()));
         } else {
             return $this->__('New AirMail Message Queue');
         }

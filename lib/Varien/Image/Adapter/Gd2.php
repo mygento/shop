@@ -36,12 +36,58 @@ class Varien_Image_Adapter_Gd2 extends Varien_Image_Adapter_Abstract
         IMAGETYPE_WBMP => array('output' => 'imagewbmp', 'create' => 'imagecreatefromxbm'),
     );
 
+    /**
+     * Whether image was resized or not
+     *
+     * @var bool
+     */
+    protected $_resized = false;
+
+    /**
+     * Opens image file.
+     *
+     * @param string $filename
+     * @throws Varien_Exception
+     */
     public function open($filename)
     {
         $this->_fileName = $filename;
         $this->getMimeType();
         $this->_getFileAttributes();
+        if ($this->_isMemoryLimitReached()) {
+            throw new Varien_Exception('Memory limit has been reached.');
+        }
         $this->_imageHandler = call_user_func($this->_getCallback('create'), $this->_fileName);
+    }
+
+    /**
+     * Checks whether memory limit is reached.
+     *
+     * @return bool
+     */
+    protected function _isMemoryLimitReached()
+    {
+        $limit = $this->_convertToByte(ini_get('memory_limit'));
+        $size = getimagesize($this->_fileName);
+        $requiredMemory = $size[0] * $size[1] * 3;
+        return (memory_get_usage(true) + $requiredMemory) > $limit;
+    }
+
+    /**
+     * Converts memory value (e.g. 64M, 129KB) to bytes.
+     * Case insensitive value might be used.
+     *
+     * @param string $memoryValue
+     * @return int
+     */
+    protected function _convertToByte($memoryValue)
+    {
+        if (stripos($memoryValue, 'M') !== false) {
+            return (int)$memoryValue * 1024 * 1024;
+        } elseif (stripos($memoryValue, 'KB') !== false) {
+            return (int)$memoryValue * 1024;
+        }
+        return (int)$memoryValue;
     }
 
     public function save($destination=null, $newName=null)
@@ -71,11 +117,27 @@ class Varien_Image_Adapter_Gd2 extends Varien_Image_Adapter_Abstract
             }
         }
 
-        // keep alpha transparency
-        $isAlpha     = false;
-        $this->_getTransparency($this->_imageHandler, $this->_fileType, $isAlpha);
-        if ($isAlpha) {
-            $this->_fillBackgroundColor($this->_imageHandler);
+        if (!$this->_resized) {
+            // keep alpha transparency
+            $isAlpha     = false;
+            $isTrueColor = false;
+            $this->_getTransparency($this->_imageHandler, $this->_fileType, $isAlpha, $isTrueColor);
+            if ($isAlpha) {
+                if ($isTrueColor) {
+                    $newImage = imagecreatetruecolor($this->_imageSrcWidth, $this->_imageSrcHeight);
+                } else {
+                    $newImage = imagecreate($this->_imageSrcWidth, $this->_imageSrcHeight);
+                }
+                $this->_fillBackgroundColor($newImage);
+                imagecopy(
+                    $newImage,
+                    $this->_imageHandler,
+                    0, 0,
+                    0, 0,
+                    $this->_imageSrcWidth, $this->_imageSrcHeight
+                );
+                $this->_imageHandler = $newImage;
+            }
         }
 
         $functionParameters = array();
@@ -138,12 +200,6 @@ class Varien_Image_Adapter_Gd2 extends Varien_Image_Adapter_Abstract
         if ($this->_keepTransparency) {
             $isAlpha = false;
             $transparentIndex = $this->_getTransparency($this->_imageHandler, $this->_fileType, $isAlpha);
-
-            if ($isAlpha || false === $transparentIndex || $transparentIndex < 0) {
-               $transparencyCondition = false;
-            } else {
-               $transparencyCondition = $transparentIndex < imagecolorstotal($this->_imageHandler);
-            }
             try {
                 // fill truecolor png with alpha transparency
                 if ($isAlpha) {
@@ -165,7 +221,7 @@ class Varien_Image_Adapter_Gd2 extends Varien_Image_Adapter_Abstract
                     return $transparentAlphaColor;
                 }
                 // fill image with indexed non-alpha transparency
-                elseif ($transparentIndex) {
+                elseif (false !== $transparentIndex) {
                     $transparentColor = false;
                     if ($transparentIndex >=0 && $transparentIndex <= imagecolorstotal($this->_imageHandler)) {
                         list($r, $g, $b)  = array_values(imagecolorsforindex($this->_imageHandler, $transparentIndex));
@@ -319,6 +375,7 @@ class Varien_Image_Adapter_Gd2 extends Varien_Image_Adapter_Abstract
         );
         $this->_imageHandler = $newImage;
         $this->refreshImageDimensions();
+        $this->_resized = true;
     }
 
     public function rotate($angle)
@@ -506,12 +563,10 @@ class Varien_Image_Adapter_Gd2 extends Varien_Image_Adapter_Abstract
     }
 
     public function checkDependencies()
-    {                        
-        // ITEAMO <<<
-        // >>> ITEAMO 
+    {
         foreach( $this->_requiredExtensions as $value ) {
-            if( !extension_loaded($value) ) {            
-                throw new Exception("Required PHP extension '{$value}' was not loaded.");                
+            if( !extension_loaded($value) ) {
+                throw new Exception("Required PHP extension '{$value}' was not loaded.");
             }
         }
     }

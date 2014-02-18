@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -31,8 +31,7 @@
  * @package     Mage_Xmlconnect
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Mage_XmlConnect_Model_Resource_ConfigData_Collection
-    extends Mage_Core_Model_Mysql4_Collection_Abstract
+class Mage_XmlConnect_Model_Resource_ConfigData_Collection extends Mage_Core_Model_Mysql4_Collection_Abstract
 {
     /**
      * Is application filter applied
@@ -58,8 +57,7 @@ class Mage_XmlConnect_Model_Resource_ConfigData_Collection
     public function addApplicationIdFilter($applicationId)
     {
         $this->_applicationFilter = true;
-        $this->getSelect()
-            ->where('application_id=?', $applicationId);
+        $this->getSelect()->where('application_id=?', $applicationId);
         return $this;
     }
 
@@ -73,11 +71,9 @@ class Mage_XmlConnect_Model_Resource_ConfigData_Collection
     public function addPathFilter($path, $like = true)
     {
         if ($like) {
-            $this->getSelect()
-                ->where('path like ?', $path . '/%');
+            $this->getSelect()->where('path like ?', $path . '/%');
         } else {
-            $this->getSelect()
-                ->where('path=?', $path);
+            $this->getSelect()->where('path=?', $path);
         }
         return $this;
     }
@@ -129,9 +125,7 @@ class Mage_XmlConnect_Model_Resource_ConfigData_Collection
      * return items array
      * array(
      *      application_id => array(
-     *          category => array(
-     *              path
-     *          )
+     *          category => array(path)
      *      )
      * )
      *

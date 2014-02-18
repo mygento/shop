@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_GoogleAnalytics
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -32,7 +32,7 @@
  * @package    Mage_GoogleAnalytics
  * @author     Magento Core Team <core@magentocommerce.com>
  */
-class Mage_GoogleAnalytics_Block_Ga extends Mage_Core_Block_Text
+class Mage_GoogleAnalytics_Block_Ga extends Mage_Core_Block_Template
 {
     /**
      * @deprecated after 1.4.1.1
@@ -92,6 +92,7 @@ class Mage_GoogleAnalytics_Block_Ga extends Mage_Core_Block_Text
         }
         return "
 _gaq.push(['_setAccount', '{$this->jsQuoteEscape($accountId)}']);
+" . $this->_getAnonymizationCode() . "
 _gaq.push(['_trackPageview'{$optPageURL}]);
 ";
     }
@@ -119,11 +120,14 @@ _gaq.push(['_trackPageview'{$optPageURL}]);
                 $address = $order->getShippingAddress();
             }
             $result[] = sprintf("_gaq.push(['_addTrans', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);",
-                $order->getIncrementId(), Mage::app()->getStore()->getFrontendName(), $order->getBaseGrandTotal(),
-                $order->getBaseTaxAmount(), $order->getBaseShippingAmount(),
-                $this->jsQuoteEscape($address->getCity()),
-                $this->jsQuoteEscape($address->getRegion()),
-                $this->jsQuoteEscape($address->getCountry())
+                $order->getIncrementId(),
+                $this->jsQuoteEscape(Mage::app()->getStore()->getFrontendName()),
+                $order->getBaseGrandTotal(),
+                $order->getBaseTaxAmount(),
+                $order->getBaseShippingAmount(),
+                $this->jsQuoteEscape(Mage::helper('core')->escapeHtml($address->getCity())),
+                $this->jsQuoteEscape(Mage::helper('core')->escapeHtml($address->getRegion())),
+                $this->jsQuoteEscape(Mage::helper('core')->escapeHtml($address->getCountry()))
             );
             foreach ($order->getAllVisibleItems() as $item) {
                 $result[] = sprintf("_gaq.push(['_addItem', '%s', '%s', '%s', '%s', '%s', '%s']);",
@@ -148,22 +152,19 @@ _gaq.push(['_trackPageview'{$optPageURL}]);
         if (!Mage::helper('googleanalytics')->isGoogleAnalyticsAvailable()) {
             return '';
         }
-        $accountId = Mage::getStoreConfig(Mage_GoogleAnalytics_Helper_Data::XML_PATH_ACCOUNT);
-        return '
-<!-- BEGIN GOOGLE ANALYTICS CODE -->
-<script type="text/javascript">
-//<![CDATA[
-    (function() {
-        var ga = document.createElement(\'script\'); ga.type = \'text/javascript\'; ga.async = true;
-        ga.src = (\'https:\' == document.location.protocol ? \'https://ssl\' : \'http://www\') + \'.google-analytics.com/ga.js\';
-        (document.getElementsByTagName(\'head\')[0] || document.getElementsByTagName(\'body\')[0]).appendChild(ga);
-    })();
+        return parent::_toHtml();
+    }
 
-    var _gaq = _gaq || [];
-' . $this->_getPageTrackingCode($accountId) . '
-' . $this->_getOrdersTrackingCode() . '
-//]]>
-</script>
-<!-- END GOOGLE ANALYTICS CODE -->';
+    /**
+     * Render IP anonymization code for page tracking javascript code
+     *
+     * @return string
+     */
+    protected function _getAnonymizationCode()
+    {
+        if (!Mage::helper('googleanalytics')->isIpAnonymizationEnabled()) {
+            return '';
+        }
+        return "_gaq.push (['_gat._anonymizeIp']);";
     }
 }

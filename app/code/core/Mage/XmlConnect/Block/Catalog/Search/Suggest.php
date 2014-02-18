@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -33,6 +33,9 @@
  */
 class Mage_XmlConnect_Block_Catalog_Search_Suggest extends Mage_CatalogSearch_Block_Autocomplete
 {
+    /**
+     * Suggest item separator
+     */
     const SUGGEST_ITEM_SEPARATOR = '::sep::';
 
     /**
@@ -42,6 +45,7 @@ class Mage_XmlConnect_Block_Catalog_Search_Suggest extends Mage_CatalogSearch_Bl
      */
     protected function _toHtml()
     {
+        /** @var $suggestXmlObj Mage_XmlConnect_Model_Simplexml_Element */
         $suggestXmlObj = Mage::getModel('xmlconnect/simplexml_element', '<suggestions></suggestions>');
 
         if (!$this->getRequest()->getParam(Mage_CatalogSearch_Helper_Data::QUERY_VAR_NAME, false)) {
@@ -49,16 +53,14 @@ class Mage_XmlConnect_Block_Catalog_Search_Suggest extends Mage_CatalogSearch_Bl
         }
 
         $suggestData = $this->getSuggestData();
-        if (!($count = count($suggestData))) {
+        if (!count($suggestData)) {
             return $suggestXmlObj->asNiceXml();
         }
 
         $items = '';
         foreach ($suggestData as $item) {
-            $items .= $suggestXmlObj->xmlentities(strip_tags($item['title']))
-                . self::SUGGEST_ITEM_SEPARATOR
-                . (int)$item['num_of_results']
-                . self::SUGGEST_ITEM_SEPARATOR;
+            $items .= $suggestXmlObj->escapeXml($item['title']) . self::SUGGEST_ITEM_SEPARATOR
+                . (int)$item['num_of_results'] . self::SUGGEST_ITEM_SEPARATOR;
         }
 
         $suggestXmlObj = Mage::getModel('xmlconnect/simplexml_element', '<suggestions>' . $items . '</suggestions>');

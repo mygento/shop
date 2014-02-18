@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -40,50 +40,51 @@ class Mage_Adminhtml_Block_Report_Tag_Popular_Detail_Grid extends Mage_Adminhtml
         $this->setId('tag_grid');
     }
 
+    /**
+     * Prepare collection for grid
+     *
+     * @return Mage_Adminhtml_Block_Report_Tag_Popular_Detail_Grid
+     */
     protected function _prepareCollection()
     {
-
-        $collection = Mage::getResourceModel('reports/tag_customer_collection')
-                ->addStatusFilter(Mage::getModel('tag/tag')->getApprovedStatus())
-                ->addTagFilter($this->getRequest()->getParam('id'))
-                ->addDescOrder();
+        /* @var $collection Mage_Reports_Model_Resource_Tag_Customer_Collection */
+        $collection = Mage::getResourceModel('reports/tag_customer_collection');
+        $collection->addStatusFilter(Mage::getModel('tag/tag')->getApprovedStatus())
+            ->addTagFilter($this->getRequest()->getParam('id'))
+            ->addProductToSelect();
 
         $this->setCollection($collection);
 
         return parent::_prepareCollection();
     }
 
-    protected function _afterLoadCollection()
-    {
-        $this->getCollection()->addProductName();
-    }
-
+    /**
+     * Form columns for the grid
+     *
+     * @return Mage_Adminhtml_Block_Report_Tag_Popular_Detail_Grid
+     */
     protected function _prepareColumns()
     {
 
         $this->addColumn('firstname', array(
             'header'    =>Mage::helper('reports')->__('First Name'),
-            'sortable'  => false,
             'index'     =>'firstname'
         ));
 
         $this->addColumn('lastname', array(
             'header'    =>Mage::helper('reports')->__('Last Name'),
-            'sortable'  => false,
             'index'     =>'lastname'
         ));
 
         $this->addColumn('product', array(
             'header'    =>Mage::helper('reports')->__('Product Name'),
-            'sortable'  => false,
-            'index'     =>'product'
+            'index'     =>'product_name'
         ));
 
         if (!Mage::app()->isSingleStoreMode()) {
             $this->addColumn('added_in', array(
                 'header'    => Mage::helper('reports')->__('Submitted In'),
-                'sortable'  => false,
-                'index'     => 'store_id',
+                'index'     => 'added_in',
                 'type'      => 'store',
                 'store_view'=> true
             ));

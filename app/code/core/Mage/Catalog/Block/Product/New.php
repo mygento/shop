@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Catalog
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -29,13 +29,21 @@
  *
  * @category   Mage
  * @package    Mage_Catalog
- * @author      Magento Core Team <core@magentocommerce.com>
+ * @author     Magento Core Team <core@magentocommerce.com>
  */
 class Mage_Catalog_Block_Product_New extends Mage_Catalog_Block_Product_Abstract
 {
-    protected $_productsCount = null;
+    /**
+     * Default value for products count that will be shown
+     */
+    const DEFAULT_PRODUCTS_COUNT = 10;
 
-    const DEFAULT_PRODUCTS_COUNT = 5;
+    /**
+     * Products count
+     *
+     * @var null
+     */
+    protected $_productsCount;
 
     /**
      * Initialize block's cache
@@ -50,10 +58,8 @@ class Mage_Catalog_Block_Product_New extends Mage_Catalog_Block_Product_Abstract
             ->addColumnCountLayoutDepend('two_columns_right', 4)
             ->addColumnCountLayoutDepend('three_columns', 3);
 
-        $this->addData(array(
-            'cache_lifetime'    => 86400,
-            'cache_tags'        => array(Mage_Catalog_Model_Product::CACHE_TAG),
-        ));
+        $this->addData(array('cache_lifetime' => 86400));
+        $this->addCacheTag(Mage_Catalog_Model_Product::CACHE_TAG);
     }
 
     /**
@@ -75,25 +81,33 @@ class Mage_Catalog_Block_Product_New extends Mage_Catalog_Block_Product_Abstract
     }
 
     /**
-     * Prepare collection with new products and applied page limits.
+     * Prepare and return product collection
      *
-     * return Mage_Catalog_Block_Product_New
+     * @return Mage_Catalog_Model_Resource_Product_Collection|Object|Varien_Data_Collection
      */
-    protected function _beforeToHtml()
+    protected function _getProductCollection()
     {
-        $todayDate  = Mage::app()->getLocale()->date()->toString(Varien_Date::DATETIME_INTERNAL_FORMAT);
+        $todayStartOfDayDate  = Mage::app()->getLocale()->date()
+            ->setTime('00:00:00')
+            ->toString(Varien_Date::DATETIME_INTERNAL_FORMAT);
 
+        $todayEndOfDayDate  = Mage::app()->getLocale()->date()
+            ->setTime('23:59:59')
+            ->toString(Varien_Date::DATETIME_INTERNAL_FORMAT);
+
+        /** @var $collection Mage_Catalog_Model_Resource_Product_Collection */
         $collection = Mage::getResourceModel('catalog/product_collection');
         $collection->setVisibility(Mage::getSingleton('catalog/product_visibility')->getVisibleInCatalogIds());
+
 
         $collection = $this->_addProductAttributesAndPrices($collection)
             ->addStoreFilter()
             ->addAttributeToFilter('news_from_date', array('or'=> array(
-                0 => array('date' => true, 'to' => $todayDate),
+                0 => array('date' => true, 'to' => $todayEndOfDayDate),
                 1 => array('is' => new Zend_Db_Expr('null')))
             ), 'left')
             ->addAttributeToFilter('news_to_date', array('or'=> array(
-                0 => array('date' => true, 'from' => $todayDate),
+                0 => array('date' => true, 'from' => $todayStartOfDayDate),
                 1 => array('is' => new Zend_Db_Expr('null')))
             ), 'left')
             ->addAttributeToFilter(
@@ -107,8 +121,17 @@ class Mage_Catalog_Block_Product_New extends Mage_Catalog_Block_Product_Abstract
             ->setCurPage(1)
         ;
 
-        $this->setProductCollection($collection);
+        return $collection;
+    }
 
+    /**
+     * Prepare collection with new products
+     *
+     * @return Mage_Core_Block_Abstract
+     */
+    protected function _beforeToHtml()
+    {
+        $this->setProductCollection($this->_getProductCollection());
         return parent::_beforeToHtml();
     }
 

@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Mygento_FastDelivery>
+            <version>1.0.0.0</version>
+        </Mygento_FastDelivery>
+    </modules>
+    <adminhtml>
+        <translate>
+            <modules>
+                <mage_adminhtml>
+                    <files>
+                        <fastdelivery>Mygento_FastDelivery.csv</fastdelivery>
+                    </files>
+                </mage_adminhtml>
+            </modules>
+        </translate>
+    </adminhtml>
+    <global>
+        <models>
+            <fastdelivery>
+                <class>Mygento_FastDelivery_Model</class>
+            </fastdelivery>
+        </models>
+        <helpers>
+            <fastdelivery>
+                <class>Mygento_FastDelivery_Helper</class>
+            </fastdelivery>
+        </helpers>
+        <resources>
+            <fastdelivery_setup>
+                <setup>
+                    <module>Mygento_FastDelivery</module>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </fastdelivery_setup>
+        </resources>
+    </global>
+    <default>
+        <carriers>
+            <fastdelivery>
+                <active>1</active>
+                <model>fastdelivery/shipping</model>
+                <name>Fast Delivery</name>
+                <title>Fast Delivery Method</title>
+            </fastdelivery>
+        </carriers>
+    </default>
+</config>

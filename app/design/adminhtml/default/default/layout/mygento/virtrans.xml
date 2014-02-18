@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<layout>
+    <virtrans_adminhtml_virtrans_index>
+        <reference name="content">
+            <block type="virtrans/adminhtml_virtrans" name="virtrans" />
+        </reference>
+    </virtrans_adminhtml_virtrans_index>
+</layout>

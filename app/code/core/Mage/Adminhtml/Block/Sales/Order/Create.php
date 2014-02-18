@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -47,7 +47,6 @@ class Mage_Adminhtml_Block_Sales_Order_Create extends Mage_Adminhtml_Block_Widge
         $customerId = $this->_getSession()->getCustomerId();
         $storeId    = $this->_getSession()->getStoreId();
 
-
         $this->_updateButton('save', 'label', Mage::helper('sales')->__('Submit Order'));
         $this->_updateButton('save', 'onclick', "order.submit()");
         $this->_updateButton('save', 'id', 'submit_order_top_button');
@@ -56,22 +55,30 @@ class Mage_Adminhtml_Block_Sales_Order_Create extends Mage_Adminhtml_Block_Widge
         }
 
         $this->_updateButton('back', 'id', 'back_order_top_button');
+        $this->_updateButton('back', 'onclick', 'setLocation(\'' . $this->getBackUrl() . '\')');
+
         $this->_updateButton('reset', 'id', 'reset_order_top_button');
 
-        if (is_null($customerId)) {
+        if (!$this->_isCanCancel() || is_null($customerId)) {
             $this->_updateButton('reset', 'style', 'display:none');
         } else {
             $this->_updateButton('back', 'style', 'display:none');
         }
 
-        //$this->_removeButton('back');
-        $this->_updateButton('back', 'onclick', 'setLocation(\'' . $this->getUrl('*/sales_order/') . '\');');
-
         $confirm = Mage::helper('sales')->__('Are you sure you want to cancel this order?');
         $this->_updateButton('reset', 'label', Mage::helper('sales')->__('Cancel'));
         $this->_updateButton('reset', 'class', 'cancel');
         $this->_updateButton('reset', 'onclick', 'deleteConfirm(\''.$confirm.'\', \'' . $this->getCancelUrl() . '\')');
+    }
 
+    /**
+     * Check access for cancel action
+     *
+     * @return boolean
+     */
+    protected function _isCanCancel()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('sales/order/actions/cancel');
     }
 
     /**
@@ -81,9 +88,9 @@ class Mage_Adminhtml_Block_Sales_Order_Create extends Mage_Adminhtml_Block_Widge
      */
     public function getHeaderHtml()
     {
-        $out = '<div id="order-header">';
-        $out.= $this->getLayout()->createBlock('adminhtml/sales_order_create_header')->toHtml();
-        $out.= '</div>';
+        $out = '<div id="order-header">'
+            . $this->getLayout()->createBlock('adminhtml/sales_order_create_header')->toHtml()
+            . '</div>';
         return $out;
     }
 
@@ -118,14 +125,22 @@ class Mage_Adminhtml_Block_Sales_Order_Create extends Mage_Adminhtml_Block_Widge
     {
         if ($this->_getSession()->getOrder()->getId()) {
             $url = $this->getUrl('*/sales_order/view', array(
-                'order_id'=>Mage::getSingleton('adminhtml/session_quote')->getOrder()->getId()
+                'order_id' => Mage::getSingleton('adminhtml/session_quote')->getOrder()->getId()
             ));
-        }
-        else {
+        } else {
             $url = $this->getUrl('*/*/cancel');
         }
 
         return $url;
     }
 
+    /**
+     * Get URL for back (reset) button
+     *
+     * @return string
+     */
+    public function getBackUrl()
+    {
+        return $this->getUrl('*/' . $this->_controller . '/');
+    }
 }

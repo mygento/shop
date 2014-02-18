@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -40,10 +40,8 @@ class Mage_XmlConnect_Block_Catalog_Product_Attributes extends Mage_Catalog_Bloc
      * @param Mage_XmlConnect_Model_Simplexml_Element $productXmlObject
      */
     public function addAdditionalData(
-        Mage_Catalog_Model_Product $product,
-        Mage_XmlConnect_Model_Simplexml_Element $productXmlObject
-    )
-    {
+        Mage_Catalog_Model_Product $product, Mage_XmlConnect_Model_Simplexml_Element $productXmlObject
+    ) {
         if ($product && $productXmlObject && $product->getId()) {
             $this->_product = $product;
             $additionalData = $this->getAdditionalData();
@@ -55,7 +53,7 @@ class Mage_XmlConnect_Block_Catalog_Product_Attributes extends Mage_Catalog_Bloc
                     /** @var $attrXmlObject Mage_XmlConnect_Model_Simplexml_Element */
                     $attrXmlObject = $attributesXmlObj->addChild('item');
                     $attrXmlObject->addCustomChild('label', $data['label']);
-                    $attrXmlObject->addCustomChild('value', $attribute);
+                    $attrXmlObject->addCustomChild('value', $attrXmlObject->escapeXml($attribute));
                 }
             }
         }

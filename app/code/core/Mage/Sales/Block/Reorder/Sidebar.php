@@ -20,12 +20,14 @@
  *
  * @category    Mage
  * @package     Mage_Sales
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * Sales order view block
+ *
+ * @method int|null getCustomerId()
  *
  * @category   Mage
  * @package    Mage_Sales
@@ -40,11 +42,10 @@ class Mage_Sales_Block_Reorder_Sidebar extends Mage_Core_Block_Template
     {
         parent::__construct();
 
-        if (Mage::getSingleton('customer/session')->isLoggedIn()) {
+        if ($this->_getCustomerSession()->isLoggedIn()) {
             $this->setTemplate('sales/order/history.phtml');
             $this->initOrders();
         }
-
     }
 
     /**
@@ -53,7 +54,7 @@ class Mage_Sales_Block_Reorder_Sidebar extends Mage_Core_Block_Template
     public function initOrders()
     {
         $customerId = $this->getCustomerId() ? $this->getCustomerId()
-            : Mage::getSingleton('customer/session')->getCustomer()->getId();
+            : $this->_getCustomerSession()->getCustomer()->getId();
 
         $orders = Mage::getResourceModel('sales/order_collection')
             ->addAttributeToFilter('customer_id', $customerId)
@@ -118,23 +119,64 @@ class Mage_Sales_Block_Reorder_Sidebar extends Mage_Core_Block_Template
     /**
      * Last order getter
      *
-     * @return Mage_Sales_Model_Order | false
+     * @return Mage_Sales_Model_Order|bool
      */
     public function getLastOrder()
     {
+        if (!$this->getOrders()) {
+            return false;
+        }
+
         foreach ($this->getOrders() as $order) {
             return $order;
         }
         return false;
     }
 
+    /**
+     * Render "My Orders" sidebar block
+     *
+     * @return string
+     */
     protected function _toHtml()
     {
-        if (Mage::helper('sales/reorder')->isAllow()
-            && (Mage::getSingleton('customer/session')->isLoggedIn() || $this->getCustomerId())
-        ) {
-            return parent::_toHtml();
+        return $this->_getCustomerSession()->isLoggedIn() || $this->getCustomerId() ? parent::_toHtml() : '';
+    }
+
+    /**
+     * Retrieve customer session instance
+     *
+     * @return Mage_Customer_Model_Session
+     */
+    protected function _getCustomerSession()
+    {
+        return Mage::getSingleton('customer/session');
+    }
+
+    /**
+     * Retrieve block cache tags
+     *
+     * @return array
+     */
+    public function getCacheTags()
+    {
+        return array_merge(
+            parent::getCacheTags(),
+            $this->getItemsTags($this->_getItemProducts())
+        );
+    }
+
+    /**
+     * Retrieve products list from items
+     *
+     * @return array
+     */
+    protected function _getItemProducts()
+    {
+        $products =  array();
+        foreach ($this->getItems() as $item) {
+            $products[] = $item->getProduct();
         }
-        return '';
+        return $products;
     }
 }

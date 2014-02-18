@@ -59,6 +59,11 @@ interface Varien_Db_Adapter_Interface
     const INTERVAL_YEAR         = 'YEARS';
 
     /**
+     * Error message for DDL query in transactions
+     */
+    const ERROR_DDL_MESSAGE = 'DDL statements are not allowed in transactions';
+
+    /**
      * Begin new DB transaction for connection
      *
      * @return Varien_Db_Adapter_Pdo_Mysql
@@ -98,6 +103,15 @@ interface Varien_Db_Adapter_Interface
     public function createTable(Varien_Db_Ddl_Table $table);
 
     /**
+     * Create temporary table from DDL object
+     *
+     * @param Varien_Db_Ddl_Table $table
+     * @throws Zend_Db_Exception
+     * @return Zend_Db_Statement_Interface
+     */
+    public function createTemporaryTable(Varien_Db_Ddl_Table $table);
+
+    /**
      * Drop table from database
      *
      * @param string $tableName
@@ -105,6 +119,15 @@ interface Varien_Db_Adapter_Interface
      * @return boolean
      */
     public function dropTable($tableName, $schemaName = null);
+
+    /**
+     * Drop temporary table from database
+     *
+     * @param string $tableName
+     * @param string $schemaName
+     * @return boolean
+     */
+    public function dropTemporaryTable($tableName, $schemaName = null);
 
     /**
      * Truncate a table
@@ -193,6 +216,16 @@ interface Varien_Db_Adapter_Interface
      * @return boolean
      */
     public function renameTable($oldTableName, $newTableName, $schemaName = null);
+
+    /**
+     * Rename several tables
+     *
+     * @param array $tablePairs array('oldName' => 'Name1', 'newName' => 'Name2')
+     *
+     * @return boolean
+     * @throws Zend_Db_Exception
+     */
+    public function renameTablesBatch(array $tablePairs);
 
     /**
      * Adds new column to the table.
@@ -421,6 +454,15 @@ interface Varien_Db_Adapter_Interface
      * @return int          The number of affected rows.
      */
     public function update($table, array $bind, $where = '');
+
+    /**
+     * Inserts a table row with specified data.
+     *
+     * @param mixed $table The table to insert data into.
+     * @param array $bind Column-value pairs.
+     * @return int The number of affected rows.
+     */
+    public function insertIgnore($table, array $bind);
 
     /**
      * Deletes table rows based on a WHERE clause.
@@ -723,6 +765,18 @@ interface Varien_Db_Adapter_Interface
     public function getCheckSql($condition, $true, $false);
 
     /**
+     * Generate fragment of SQL, that check value against multiple condition cases
+     * and return different result depends on them
+     *
+     * @param string $valueName Name of value to check
+     * @param array $casesResults Cases and results
+     * @param string $defaultValue value to use if value doesn't confirm to any cases
+     *
+     * @return Zend_Db_Expr
+     */
+    public function getCaseSql($valueName, $casesResults, $defaultValue = null);
+
+    /**
      * Returns valid IFNULL expression
      *
      * @param string $column
@@ -741,6 +795,12 @@ interface Varien_Db_Adapter_Interface
      * @return Zend_Db_Expr
      */
     public function getConcatSql(array $data, $separator = null);
+
+    /**
+     * Returns the configuration variables in this adapter.
+     * @return array
+     */
+    public function getConfig();
 
     /**
      * Generate fragment of SQL that returns length of character string
@@ -822,6 +882,24 @@ interface Varien_Db_Adapter_Interface
     public function getDatePartSql($date);
 
     /**
+     * Prepare substring sql function
+     *
+     * @param Zend_Db_Expr|string $stringExpression quoted field name or SQL statement
+     * @param int|string|Zend_Db_Expr $pos
+     * @param int|string|Zend_Db_Expr|null $len
+     * @return Zend_Db_Expr
+     */
+    public function getSubstringSql($stringExpression, $pos, $len = null);
+
+    /**
+     * Prepare standard deviation sql function
+     *
+     * @param Zend_Db_Expr|string $expressionField   quoted field name or SQL statement
+     * @return Zend_Db_Expr
+     */
+    public function getStandardDeviationSql($expressionField);
+
+    /**
      * Extract part of a date
      *
      * @see INTERVAL_* constants for $unit
@@ -888,10 +966,20 @@ interface Varien_Db_Adapter_Interface
      * @param Varien_Db_Select $select
      * @param string $table     insert into table
      * @param array $fields
-     * @param int $mode
+     * @param bool|int $mode
      * @return string
      */
     public function insertFromSelect(Varien_Db_Select $select, $table, array $fields = array(), $mode = false);
+
+    /**
+     * Get insert queries in array for insert by range with step parameter
+     *
+     * @param string $rangeField
+     * @param Varien_Db_Select $select
+     * @param int $stepCount
+     * @return array
+     */
+    public function selectsByRange($rangeField, Varien_Db_Select $select, $stepCount = 100);
 
     /**
      * Get update table query using select object for join and update
@@ -962,4 +1050,67 @@ interface Varien_Db_Adapter_Interface
      * @return mixed
      */
     public function decodeVarbinary($value);
+
+    /**
+     * Returns date that fits into TYPE_DATETIME range and is suggested to act as default 'zero' value
+     * for a column for current RDBMS. Deprecated and left for compatibility only.
+     * In Magento at MySQL there was zero date used for datetime columns. However, zero date it is not supported across
+     * different RDBMS. Thus now it is recommended to use same default value equal for all RDBMS - either NULL
+     * or specific date supported by all RDBMS.
+     *
+     * @deprecated after 1.5.1.0
+     * @return string
+     */
+    public function getSuggestedZeroDate();
+
+    /**
+     * Drop trigger
+     *
+     * @param string $triggerName
+     * @return Varien_Db_Adapter_Interface
+     */
+    public function dropTrigger($triggerName);
+
+    /**
+     * Get adapter transaction level state. Return 0 if all transactions are complete
+     *
+     * @return int
+     */
+    public function getTransactionLevel();
+
+    /**
+     * Convert date format to unix time
+     *
+     * @param string|Zend_Db_Expr $date
+     * @return mixed
+     */
+    public function getUnixTimestamp($date);
+
+    /**
+     * Convert unix time to date format
+     *
+     * @param int|Zend_Db_Expr $timestamp
+     * @return mixed
+     */
+    public function fromUnixtime($timestamp);
+
+    /**
+     * Change table auto increment value
+     *
+     * @param string $tableName
+     * @param string $increment
+     * @param null|string $schemaName
+     * @return Zend_Db_Statement_Interface
+     */
+    public function changeTableAutoIncrement($tableName, $increment, $schemaName = null);
+
+    /**
+     * Create new table from provided select statement
+     *
+     * @param string $tableName
+     * @param Zend_Db_Select $select
+     * @param bool $temporary
+     * @return mixed
+     */
+    public function createTableFromSelect($tableName, Zend_Db_Select $select, $temporary = false);
 }

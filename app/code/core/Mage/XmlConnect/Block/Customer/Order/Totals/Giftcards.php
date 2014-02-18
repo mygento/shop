@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -38,11 +38,16 @@ class Mage_XmlConnect_Block_Customer_Order_Totals_Giftcards
      * Add order total rendered to XML object
      *
      * @param $totalsXml Mage_XmlConnect_Model_Simplexml_Element
-     * @return void
+     * @return null
      */
     public function addToXmlObject(Mage_XmlConnect_Model_Simplexml_Element $totalsXml)
     {
-        $cards  = $this->getGiftCards();
+        if ($this->getNewApi()) {
+            $this->addToXmlObjectApi23($totalsXml);
+            return;
+        }
+
+        $cards = $this->getGiftCards();
         if ($cards) {
             foreach ($cards as $card) {
                 $label = Mage::helper('enterprise_giftcardaccount')->__('Gift Card (%s)', $card->getCode());
@@ -55,11 +60,36 @@ class Mage_XmlConnect_Block_Customer_Order_Totals_Giftcards
         } else {
             $cardsAmount = $this->getSource()->getGiftCardsAmount();
             if ($cardsAmount > 0) {
-                $totalsXml->addCustomChild(
-                    $this->getTotal()->getCode(),
-                    '-' . $this->_formatPrice($cardsAmount),
-                    array('label' => Mage::helper('enterprise_giftcardaccount')->__('Gift Card'))
-                );
+                $totalsXml->addCustomChild($this->getTotal()->getCode(), '-' . $this->_formatPrice($cardsAmount), array(
+                    'label' => Mage::helper('enterprise_giftcardaccount')->__('Gift Card')
+                ));
+            }
+        }
+    }
+
+    /**
+     * Add order total rendered to XML object. Api version 23
+     *
+     * @param $totalsXml Mage_XmlConnect_Model_Simplexml_Element
+     * @return null
+     */
+    public function addToXmlObjectApi23(Mage_XmlConnect_Model_Simplexml_Element $totalsXml)
+    {
+        $cards = $this->getGiftCards();
+        if ($cards) {
+            foreach ($cards as $card) {
+                $label = Mage::helper('enterprise_giftcardaccount')->__('Gift Card (%s)', $card->getCode());
+                $totalsXml->addCustomChild('item', '-' . $this->_formatPrice($card->getAmount()), array(
+                    'id' => $this->getTotal()->getCode(),
+                    'label' => $label
+                ));
+            }
+        } else {
+            $cardsAmount = $this->getSource()->getGiftCardsAmount();
+            if ($cardsAmount > 0) {
+                $totalsXml->addCustomChild($this->getTotal()->getCode(), '-' . $this->_formatPrice($cardsAmount), array(
+                    'label' => Mage::helper('enterprise_giftcardaccount')->__('Gift Card')
+                ));
             }
         }
     }
@@ -72,6 +102,6 @@ class Mage_XmlConnect_Block_Customer_Order_Totals_Giftcards
      */
     protected function _formatPrice($amount)
     {
-        return $this->getOrder()->getOrderCurrency()->formatPrecision($amount, 2, array(), false);
+        return Mage::helper('xmlconnect/customer_order')->formatPrice($this, $amount);
     }
 }

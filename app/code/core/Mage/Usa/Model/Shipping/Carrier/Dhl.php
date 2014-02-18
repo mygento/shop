@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Usa
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -33,7 +33,7 @@
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Mage_Usa_Model_Shipping_Carrier_Dhl
-    extends Mage_Usa_Model_Shipping_Carrier_Abstract
+    extends Mage_Usa_Model_Shipping_Carrier_Dhl_Abstract
     implements Mage_Shipping_Model_Carrier_Interface
 {
 
@@ -381,6 +381,8 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
             $r->setPackageId($request->getPackageId());
         }
 
+        $r->setBaseSubtotalInclTax($request->getBaseSubtotalInclTax());
+
         $this->_rawRequest = $r;
         return $this;
     }
@@ -420,34 +422,6 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
         $freeWeight = round(max(1, $weight), 0);
         $r->setWeight($freeWeight);
         $r->setService($freeMethod);
-    }
-
-    /**
-     * Get shipping date
-     *
-     * @param bool $domestic
-     * @return string
-     */
-    protected function _getShipDate($domestic = true)
-    {
-        if ($domestic) {
-            $days = explode(',', $this->getConfigData('shipment_days'));
-        } else {
-            $days = explode(',', $this->getConfigData('intl_shipment_days'));
-        }
-
-        if (!$days) {
-            return date('Y-m-d');
-        }
-
-        $i = 0;
-        $weekday = date('w');
-        while (!in_array($weekday, $days) && $i < 10) {
-            $i++;
-            $weekday = date('w', strtotime("+$i day"));
-        }
-
-        return date('Y-m-d', strtotime("+$i day"));
     }
 
     /**
@@ -778,10 +752,6 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
         $priceArr = array();
         $errorTitle = 'Unable to retrieve quotes';
 
-        $tr = get_html_translation_table(HTML_ENTITIES);
-        unset($tr['<'], $tr['>'], $tr['"']);
-        $response = str_replace(array_keys($tr), array_values($tr), $response);
-
         if (strlen(trim($response)) > 0) {
             if (strpos(trim($response), '<?xml') === 0) {
                 $xml = simplexml_load_string($response);
@@ -796,8 +766,7 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
                         $code = (string)$xml->Faults->Fault->Code;
                         $description = $xml->Faults->Fault->Description;
                         $context = $xml->Faults->Fault->Context;
-                        $this->_errors[$code] = Mage::helper('usa')->__('Error #%s : %s (%s)', $code, $description,
-                            $context);
+                        $this->_errors[$code] = Mage::helper('usa')->__('Error #%s : %s (%s)', $code, $description, $context);
                     } else {
                         if ($r->getDestCountryId() == self::USA_COUNTRY_ID) {
                             if ($xml->Shipment) {
@@ -855,14 +824,12 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
                     $rate->setPrice($data['price_total']);
                     $result->append($rate);
                 }
-            } else {
-                foreach ($this->_errors as $errorText) {
-                    $error = Mage::getModel('shipping/rate_result_error');
-                    $error->setCarrier('dhl');
-                    $error->setCarrierTitle($this->getConfigData('title'));
-                    $error->setErrorMessage($this->getConfigData('specificerrmsg'));
-                    $result->append($error);
-                }
+            } else if (!empty($this->_errors)) {
+                $error = Mage::getModel('shipping/rate_result_error');
+                $error->setCarrier('dhl');
+                $error->setCarrierTitle($this->getConfigData('title'));
+                $error->setErrorMessage($this->getConfigData('specificerrmsg'));
+                $result->append($error);
             }
             return $result;
         }
@@ -1033,10 +1000,9 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
     }
 
     /**
-     * Send request for tracking
+     * Send request for trackings
      *
-     * @param array $tracking
-     * @return null
+     * @param array $trackings
      */
     protected function _getXMLTracking($trackings)
     {
@@ -1198,15 +1164,9 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
                                     } else {
                                         $description = (string)$txml->Result->Desc;
                                         if ($description)
-                                            $errorArr[$tracknum] = Mage::helper('usa')->__(
-                                                'Error #%s: %s',
-                                                $code,
-                                                $description
-                                            );
+                                            $errorArr[$tracknum] = Mage::helper('usa')->__('Error #%s: %s', $code, $description);
                                         else
-                                            $errorArr[$tracknum] = Mage::helper('usa')->__(
-                                                'Unable to retrieve tracking'
-                                            );
+                                            $errorArr[$tracknum] = Mage::helper('usa')->__('Unable to retrieve tracking');
                                     }
                                 } else {
                                     $errorArr[$tracknum] = Mage::helper('usa')->__('Unable to retrieve tracking');
@@ -1371,6 +1331,8 @@ class Mage_Usa_Model_Shipping_Carrier_Dhl
         $request->setPackageCustomsValue($customsValue);
         $request->setFreeMethodWeight(0);
         $request->setDhlShipmentType($request->getPackagingType());
+
+        $request->setBaseSubtotalInclTax($request->getBaseSubtotalInclTax());
     }
 
     /**

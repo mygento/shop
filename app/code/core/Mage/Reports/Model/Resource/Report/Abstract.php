@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Reports
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -105,7 +105,11 @@ abstract class Mage_Reports_Model_Resource_Report_Abstract extends Mage_Core_Mod
      */
     protected function _truncateTable($table)
     {
-        $this->_getWriteAdapter()->truncateTable($table);
+        if ($this->_getWriteAdapter()->getTransactionLevel() > 0) {
+            $this->_getWriteAdapter()->delete($table);
+        } else {
+            $this->_getWriteAdapter()->truncateTable($table);
+        }
         return $this;
     }
 
@@ -368,7 +372,7 @@ abstract class Mage_Reports_Model_Resource_Report_Abstract extends Mage_Core_Mod
         foreach ($periods as $offset => $timestamps) {
             $subParts = array();
             foreach ($timestamps as $ts) {
-                $subParts[] = "($column between '{$ts['from']}' and '{$ts['to']}')";
+                $subParts[] = "($column between {$ts['from']} and {$ts['to']})";
             }
 
             $then = $this->_getWriteAdapter()
@@ -393,23 +397,26 @@ abstract class Mage_Reports_Model_Resource_Report_Abstract extends Mage_Core_Mod
         $tzTransitions = array();
         try {
             if (!empty($from)) {
-                $from = new Zend_Date($from, 'Y-m-d H:i:s');
+                $from = new Zend_Date($from, Varien_Date::DATETIME_INTERNAL_FORMAT);
                 $from = $from->getTimestamp();
             }
 
-            $to = new Zend_Date($to);
-            $nextPeriod = $to->toString('c');
+            $to = new Zend_Date($to, Varien_Date::DATETIME_INTERNAL_FORMAT);
+            $nextPeriod = $this->_getWriteAdapter()->formatDate($to->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
             $to = $to->getTimestamp();
 
             $dtz = new DateTimeZone($timezone);
             $transitions = $dtz->getTransitions();
-
+            $dateTimeObject = new Zend_Date('c');
             for ($i = count($transitions) - 1; $i >= 0; $i--) {
                 $tr = $transitions[$i];
-                if ($tr['ts'] > $to) {
+                if (!$this->_isValidTransition($tr, $to)) {
                     continue;
                 }
 
+                $dateTimeObject->set($tr['time']);
+                $tr['time'] = $this->_getWriteAdapter()
+                    ->formatDate($dateTimeObject->toString(Varien_Date::DATETIME_INTERNAL_FORMAT));
                 $tzTransitions[$tr['offset']][] = array('from' => $tr['time'], 'to' => $nextPeriod);
 
                 if (!empty($from) && $tr['ts'] < $from) {
@@ -418,12 +425,43 @@ abstract class Mage_Reports_Model_Resource_Report_Abstract extends Mage_Core_Mod
                 $nextPeriod = $tr['time'];
             }
         } catch (Exception $e) {
-            Mage::logException($e);
+            $this->_logException($e);
         }
 
         return $tzTransitions;
     }
 
+    /**
+     * Logs the exceptions
+     *
+     * @param Exception $exception
+     */
+    protected function _logException($exception)
+    {
+        Mage::logException($exception);
+    }
+
+    /**
+     * Verifies the transition and the "to" timestamp
+     *
+     * @param array      $transition
+     * @param int|string $to
+     * @return bool
+     */
+    protected function _isValidTransition($transition, $to)
+    {
+        $result         = true;
+        $timeStamp      = $transition['ts'];
+        $transitionYear = date('Y', $timeStamp);
+
+        if ($transitionYear > 10000 || $transitionYear < -10000) {
+            $result = false;
+        } else if ($timeStamp > $to) {
+            $result = false;
+        }
+
+        return $result;
+    }
 
     /**
      * Retrieve store timezone offset from UTC in the form acceptable by SQL's CONVERT_TZ()

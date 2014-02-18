@@ -49,6 +49,11 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     const LENGTH_FOREIGN_NAME   = 64;
 
     /**
+     * MEMORY engine type for MySQL tables
+     */
+    const ENGINE_MEMORY = 'MEMORY';
+
+    /**
      * Default class name for a DB statement.
      *
      * @var string
@@ -172,6 +177,21 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         Varien_Db_Ddl_Table::TYPE_BLOB          => 'blob',
         Varien_Db_Ddl_Table::TYPE_VARBINARY     => 'blob'
     );
+
+    /**
+     * All possible DDL statements
+     * First 3 symbols for each statement
+     *
+     * @var array
+     */
+    protected $_ddlRoutines = array('alt', 'cre', 'ren', 'dro', 'tru');
+
+    /**
+     * DDL statements for temporary tables
+     *
+     * @var string
+     */
+    protected $_tempRoutines =  '#^\w+\s+temporary\s#im';
 
     /**
      * Allowed interval units array
@@ -373,18 +393,37 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     }
 
     /**
+     * Check transaction level in case of DDL query
+     *
+     * @param string|Zend_Db_Select $sql
+     * @throws Zend_Db_Adapter_Exception
+     */
+    protected function _checkDdlTransaction($sql)
+    {
+        if (is_string($sql) && $this->getTransactionLevel() > 0) {
+            $startSql = strtolower(substr(ltrim($sql), 0, 3));
+            if (in_array($startSql, $this->_ddlRoutines)
+                && (preg_match($this->_tempRoutines, $sql) !== 1)
+            ) {
+                trigger_error(Varien_Db_Adapter_Interface::ERROR_DDL_MESSAGE, E_USER_ERROR);
+            }
+        }
+    }
+
+    /**
      * Special handling for PDO query().
      * All bind parameter names must begin with ':'.
      *
      * @param string|Zend_Db_Select $sql The SQL statement with placeholders.
      * @param mixed $bind An array of data or data itself to bind to the placeholders.
-     * @return Zend_Db_Pdo_Statement
+     * @return Zend_Db_Statement_Pdo
      * @throws Zend_Db_Adapter_Exception To re-throw PDOException.
      */
     public function query($sql, $bind = array())
     {
         $this->_debugTimer();
         try {
+            $this->_checkDdlTransaction($sql);
             $this->_prepareQuery($sql, $bind);
             $result = parent::query($sql, $bind);
         } catch (Exception $e) {
@@ -422,21 +461,6 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
                         unset($bind[$k]);
                     }
                 }
-            }
-        }
-
-        if (strpos($sql, ':') !== false || strpos($sql, '?') !== false) {
-            $before = count($bind);
-            $this->_bindParams = $bind; // Used by callback
-            $sql = preg_replace_callback('#(([\'"])((\\2)|((.*?[^\\\\])\\2)))#',
-                array($this, 'proccessBindCallback'),
-                $sql);
-            Varien_Exception::processPcreError();
-            $bind = $this->_bindParams;
-
-            // If _processBindCallbacks() has added named entries to positional bind - normalize it to positional
-            if (!$isNamedBind && $before && (count($bind) != $before)) {
-                $this->_convertMixedBind($sql, $bind);
             }
         }
 
@@ -611,7 +635,9 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
      */
     protected function _splitMultiQuery($sql)
     {
-        $parts = preg_split('#(;|\'|"|\\\\|//|--|\n|/\*|\*/)#', $sql, null, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        $parts = preg_split('#(;|\'|"|\\\\|//|--|\n|/\*|\*/)#', $sql, null,
+            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
+        );
 
         $q      = false;
         $c      = false;
@@ -670,14 +696,19 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     public function dropForeignKey($tableName, $fkName, $schemaName = null)
     {
         $foreignKeys = $this->getForeignKeys($tableName, $schemaName);
-        $fkName      = strtoupper($fkName);
-        if (isset($foreignKeys[$fkName])) {
-            $sql = sprintf('ALTER TABLE %s DROP FOREIGN KEY %s',
-                $this->quoteIdentifier($this->_getTableName($tableName, $schemaName)),
-                $this->quoteIdentifier($foreignKeys[$fkName]['FK_NAME'])
-            );
-            $this->resetDdlCache($tableName, $schemaName);
-            $this->raw_query($sql);
+        $fkName = strtoupper($fkName);
+        if (substr($fkName, 0, 3) == 'FK_') {
+            $fkName = substr($fkName, 3);
+        }
+        foreach (array($fkName, 'FK_' . $fkName) as $key) {
+            if (isset($foreignKeys[$key])) {
+                $sql = sprintf('ALTER TABLE %s DROP FOREIGN KEY %s',
+                    $this->quoteIdentifier($this->_getTableName($tableName, $schemaName)),
+                    $this->quoteIdentifier($foreignKeys[$key]['FK_NAME'])
+                );
+                $this->resetDdlCache($tableName, $schemaName);
+                $this->raw_query($sql);
+            }
         }
         return $this;
     }
@@ -873,7 +904,11 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         $schemaName = null)
     {
         if (!$this->tableColumnExists($tableName, $oldColumnName, $schemaName)) {
-            throw new Zend_Db_Exception(sprintf('Column "%s" does not exists on table "%s"', $oldColumnName, $tableName));
+            throw new Zend_Db_Exception(sprintf(
+                'Column "%s" does not exist in table "%s".',
+                $oldColumnName,
+                $tableName
+            ));
         }
 
         if (is_array($definition)) {
@@ -910,7 +945,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     public function modifyColumn($tableName, $columnName, $definition, $flushData = false, $schemaName = null)
     {
         if (!$this->tableColumnExists($tableName, $columnName, $schemaName)) {
-            throw new Zend_Db_Exception(sprintf('Column "%s" does not exists on table "%s"', $columnName, $tableName));
+            throw new Zend_Db_Exception(sprintf('Column "%s" does not exist in table "%s".', $columnName, $tableName));
         }
         if (is_array($definition)) {
             $definition = $this->_getColumnDefinition($definition);
@@ -984,6 +1019,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
             $ddl = $this->raw_fetchRow($sql, 'Create Table');
             $this->saveDdlCache($cacheKey, self::DDL_CREATE, $ddl);
         }
+
         return $ddl;
     }
 
@@ -1058,6 +1094,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
                 $tree[$table][$key['COLUMN_NAME']] = $key;
             }
         }
+
         return $tree;
     }
 
@@ -1126,6 +1163,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
                 $this->changeTableEngine($table, $tableData['engine']);
             }
         }
+
         return $this;
     }
 
@@ -1195,6 +1233,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
             }
             $this->saveDdlCache($cacheKey, self::DDL_INDEX, $ddl);
         }
+
         return $ddl;
     }
 
@@ -1269,6 +1308,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         if ($this->_debug) {
             $this->_debugTimer = microtime(true);
         }
+
         return $this;
     }
 
@@ -1383,6 +1423,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         if (is_array($value) && empty($value)) {
             $value = new Zend_Db_Expr('NULL');
         }
+
         return parent::quoteInto($text, $value, $type, $count);
     }
 
@@ -1570,6 +1611,57 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     }
 
     /**
+     * Format described column to definition, ready to be added to ddl table.
+     * Return array with keys: name, type, length, options, comment
+     *
+     * @param  array $columnData
+     * @return array
+     */
+    public function getColumnCreateByDescribe($columnData)
+    {
+        $type = $this->_getColumnTypeByDdl($columnData);
+        $options = array();
+
+        if ($columnData['IDENTITY'] === true) {
+            $options['identity'] = true;
+        }
+        if ($columnData['UNSIGNED'] === true) {
+            $options['unsigned'] = true;
+        }
+        if ($columnData['NULLABLE'] === false
+            && !($type == Varien_Db_Ddl_Table::TYPE_TEXT && strlen($columnData['DEFAULT']) != 0)
+        ) {
+            $options['nullable'] = false;
+        }
+        if ($columnData['PRIMARY'] === true) {
+            $options['primary'] = true;
+        }
+        if (!is_null($columnData['DEFAULT'])
+            && $type != Varien_Db_Ddl_Table::TYPE_TEXT
+        ) {
+            $options['default'] = $this->quote($columnData['DEFAULT']);
+        }
+        if (strlen($columnData['SCALE']) > 0) {
+            $options['scale'] = $columnData['SCALE'];
+        }
+        if (strlen($columnData['PRECISION']) > 0) {
+            $options['precision'] = $columnData['PRECISION'];
+        }
+
+        $comment = uc_words($columnData['COLUMN_NAME'], ' ');
+
+        $result = array(
+            'name'      => $columnData['COLUMN_NAME'],
+            'type'      => $type,
+            'length'    => $columnData['LENGTH'],
+            'options'   => $options,
+            'comment'   => $comment
+        );
+
+        return $result;
+    }
+
+    /**
      * Create Varien_Db_Ddl_Table object by data from describe table
      *
      * @param $tableName
@@ -1580,37 +1672,18 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     {
         $describe = $this->describeTable($tableName);
         $table = $this->newTable($newTableName)
-            ->setComment(ucwords(str_replace('_', ' ', $newTableName)));
+            ->setComment(uc_words($newTableName, ' '));
+
         foreach ($describe as $columnData) {
-            $type = $this->_getColumnTypeByDdl($columnData);
-            $options = array();
-            if ($columnData['IDENTITY'] === true) {
-                $options['identity']  = true;
-            }
-            if ($columnData['UNSIGNED'] === true) {
-                $options['unsigned']  = true;
-            }
-            if ($columnData['NULLABLE'] === false
-                && !($type == Varien_Db_Ddl_Table::TYPE_TEXT && strlen($columnData['DEFAULT']) != 0)
-                ) {
-                $options['nullable'] = false;
-            }
-            if ($columnData['PRIMARY'] === true) {
-                $options['primary'] = true;
-            }
-            if (!is_null($columnData['DEFAULT'])
-                && $type != Varien_Db_Ddl_Table::TYPE_TEXT
-                ) {
-                $options['default'] = $this->quote($columnData['DEFAULT']);
-            }
-            if (strlen($columnData['SCALE']) > 0) {
-                $options['scale'] = $columnData['SCALE'];
-            }
-            if (strlen($columnData['PRECISION']) > 0) {
-                $options['precision'] = $columnData['PRECISION'];
-            }
-            $comment = ucwords(str_replace('_', ' ', $columnData['COLUMN_NAME']));
-            $table->addColumn($columnData['COLUMN_NAME'], $type, $columnData['LENGTH'], $options, $comment);
+            $columnInfo = $this->getColumnCreateByDescribe($columnData);
+
+            $table->addColumn(
+                $columnInfo['name'],
+                $columnInfo['type'],
+                $columnInfo['length'],
+                $columnInfo['options'],
+                $columnInfo['comment']
+            );
         }
 
         $indexes = $this->getIndexList($tableName);
@@ -1620,7 +1693,8 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
              * For reliability check both name and type, because these values can start to differ in future.
              */
             if (($indexData['KEY_NAME'] == 'PRIMARY')
-                || ($indexData['INDEX_TYPE'] == Varien_Db_Adapter_Interface::INDEX_TYPE_PRIMARY)) {
+                || ($indexData['INDEX_TYPE'] == Varien_Db_Adapter_Interface::INDEX_TYPE_PRIMARY)
+            ) {
                 continue;
             }
 
@@ -1667,6 +1741,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         if (array_key_exists('DEFAULT', $definition) && is_null($definition['DEFAULT'])) {
             unset($definition['DEFAULT']);
         }
+
         return $this->modifyColumn($tableName, $columnName, $definition, $flushData, $schemaName);
     }
 
@@ -1739,6 +1814,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     {
         $table = $this->quoteIdentifier($this->_getTableName($tableName, $schemaName));
         $sql   = sprintf('ALTER TABLE %s ENGINE=%s', $table, $engine);
+
         return $this->raw_query($sql);
     }
 
@@ -1754,6 +1830,22 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     {
         $table = $this->quoteIdentifier($this->_getTableName($tableName, $schemaName));
         $sql   = sprintf("ALTER TABLE %s COMMENT='%s'", $table, $comment);
+
+        return $this->raw_query($sql);
+    }
+
+    /**
+     * Change table auto increment value
+     *
+     * @param string $tableName
+     * @param string $increment
+     * @param null|string $schemaName
+     * @return Zend_Db_Statement_Interface
+     */
+    public function changeTableAutoIncrement($tableName, $increment, $schemaName = null)
+    {
+        $table = $this->quoteIdentifier($this->_getTableName($tableName, $schemaName));
+        $sql = sprintf('ALTER TABLE %s AUTO_INCREMENT=%d', $table, $increment);
         return $this->raw_query($sql);
     }
 
@@ -1770,6 +1862,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         $this->raw_query("SET @OLD_INSERT_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO'");
         $result = $this->insert($table, $bind);
         $this->raw_query("SET SQL_MODE=IFNULL(@OLD_INSERT_SQL_MODE,'')");
+
         return $result;
     }
 
@@ -1825,7 +1918,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
                 }
             } elseif (is_string($v)) {
                 $value = sprintf('VALUES(%s)', $this->quoteIdentifier($v));
-                $field = $v;
+                $field = $this->quoteIdentifier($v);
             }
 
             if ($field && $value) {
@@ -1904,6 +1997,61 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         // execute the statement and return the number of affected rows
         $stmt   = $this->query($insertQuery, $bind);
         $result = $stmt->rowCount();
+
+        return $result;
+    }
+
+    /**
+     * Inserts a table row with specified data.
+     *
+     * @param mixed $table The table to insert data into.
+     * @param array $bind Column-value pairs.
+     * @return int The number of affected rows.
+     * @throws Zend_Db_Adapter_Exception
+     */
+    public function insertIgnore($table, array $bind)
+    {
+        // extract and quote col names from the array keys
+        $cols = array();
+        $vals = array();
+        $i = 0;
+        foreach ($bind as $col => $val) {
+            $cols[] = $this->quoteIdentifier($col, true);
+            if ($val instanceof Zend_Db_Expr) {
+                $vals[] = $val->__toString();
+                unset($bind[$col]);
+            } else {
+                if ($this->supportsParameters('positional')) {
+                    $vals[] = '?';
+                } else {
+                    if ($this->supportsParameters('named')) {
+                        unset($bind[$col]);
+                        $bind[':col'.$i] = $val;
+                        $vals[] = ':col'.$i;
+                        $i++;
+                    } else {
+                        /** @see Zend_Db_Adapter_Exception */
+                        #require_once 'Zend/Db/Adapter/Exception.php';
+                        throw new Zend_Db_Adapter_Exception(
+                            get_class($this) ." doesn't support positional or named binding"
+                        );
+                    }
+                }
+            }
+        }
+
+        // build the statement
+        $sql = "INSERT IGNORE INTO "
+            . $this->quoteIdentifier($table, true)
+            . ' (' . implode(', ', $cols) . ') '
+            . 'VALUES (' . implode(', ', $vals) . ')';
+
+        // execute the statement and return the number of affected rows
+        if ($this->supportsParameters('positional')) {
+            $bind = array_values($bind);
+        }
+        $stmt = $this->query($sql, $bind);
+        $result = $stmt->rowCount();
         return $result;
     }
 
@@ -1935,6 +2083,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         if ($schemaName !== null) {
             $table->setSchema($schemaName);
         }
+
         return $table;
     }
 
@@ -1961,6 +2110,29 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         );
         $tableOptions   = $this->_getOptionsDefinition($table);
         $sql = sprintf("CREATE TABLE %s (\n%s\n) %s",
+            $this->quoteIdentifier($table->getName()),
+            implode(",\n", $sqlFragment),
+            implode(" ", $tableOptions));
+
+        return $this->query($sql);
+    }
+
+    /**
+     * Create temporary table
+     *
+     * @param Varien_Db_Ddl_Table $table
+     * @throws Zend_Db_Exception
+     * @return Zend_Db_Pdo_Statement
+     */
+    public function createTemporaryTable(Varien_Db_Ddl_Table $table)
+    {
+        $sqlFragment    = array_merge(
+            $this->_getColumnsDefinition($table),
+            $this->_getIndexesDefinition($table),
+            $this->_getForeignKeysDefinition($table)
+        );
+        $tableOptions   = $this->_getOptionsDefinition($table);
+        $sql = sprintf("CREATE TEMPORARY TABLE %s (\n%s\n) %s",
             $this->quoteIdentifier($table->getName()),
             implode(",\n", $sqlFragment),
             implode(" ", $tableOptions));
@@ -2002,6 +2174,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
             $primary      = array_map(array($this, 'quoteIdentifier'), array_keys($primary));
             $definition[] = sprintf('  PRIMARY KEY (%s)', implode(', ', $primary));
         }
+
         return $definition;
     }
 
@@ -2118,6 +2291,23 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
 
         return $definition;
     }
+
+    /**
+     * Get column definition from description
+     *
+     * @param  array $options
+     * @param  null|string $ddlType
+     * @return string
+     */
+    public function getColumnDefinitionFromDescribe($options, $ddlType = null)
+    {
+        $columnInfo = $this->getColumnCreateByDescribe($options);
+        foreach ($columnInfo['options'] as $key => $value) {
+            $columnInfo[$key] = $value;
+        }
+        return $this->_getColumnDefinition($columnInfo, $ddlType);
+    }
+
     /**
      * Retrieve column definition fragment
      *
@@ -2223,8 +2413,10 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
                 $cDefault = new Zend_Db_Expr('0 ON UPDATE CURRENT_TIMESTAMP');
             } else if ($cDefault == Varien_Db_Ddl_Table::TIMESTAMP_INIT_UPDATE) {
                 $cDefault = new Zend_Db_Expr('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+            } else if ($cNullable && !$cDefault) {
+                $cDefault = new Zend_Db_Expr('NULL');
             } else {
-                $cDefault = false;
+                $cDefault = new Zend_Db_Expr('0');
             }
         } else if (is_null($cDefault) && $cNullable) {
             $cDefault = new Zend_Db_Expr('NULL');
@@ -2235,13 +2427,21 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         } else {
             $comment = $options['COMMENT'];
         }
-        return sprintf('%s%s%s%s%s COMMENT %s',
+
+        //set column position
+        $after = null;
+        if (!empty($options['AFTER'])) {
+            $after = $options['AFTER'];
+        }
+
+        return sprintf('%s%s%s%s%s COMMENT %s %s',
             $cType,
             $cUnsigned ? ' UNSIGNED' : '',
             $cNullable ? ' NULL' : ' NOT NULL',
             $cDefault !== false ? $this->quoteInto(' default ?', $cDefault) : '',
             $cIdentity ? ' auto_increment' : '',
-            $this->quote($comment)
+            $this->quote($comment),
+            $after ? 'AFTER ' . $this->quoteIdentifier($after) : ''
         );
     }
 
@@ -2257,7 +2457,24 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         $table = $this->quoteIdentifier($this->_getTableName($tableName, $schemaName));
         $query = 'DROP TABLE IF EXISTS ' . $table;
         $this->query($query);
+
         return true;
+    }
+
+    /**
+     * Drop temporary table from database
+     *
+     * @param string $tableName
+     * @param string $schemaName
+     * @return boolean
+     */
+    public function dropTemporaryTable($tableName, $schemaName = null)
+    {
+        $table = $this->quoteIdentifier($this->_getTableName($tableName, $schemaName));
+        $query = 'DROP TEMPORARY TABLE IF EXISTS ' . $table;
+        $this->query($query);
+
+        return $this;
     }
 
     /**
@@ -2321,6 +2538,42 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
 
         return true;
     }
+
+    /**
+     * Rename several tables
+     *
+     * @param array $tablePairs array('oldName' => 'Name1', 'newName' => 'Name2')
+     *
+     * @return boolean
+     * @throws Zend_Db_Exception
+     */
+    public function renameTablesBatch(array $tablePairs)
+    {
+        if (count($tablePairs) == 0) {
+            throw new Zend_Db_Exception('Please provide tables for rename');
+        }
+
+        $renamesList = array();
+        $tablesList  = array();
+        foreach ($tablePairs as $pair) {
+            $oldTableName  = $pair['oldName'];
+            $newTableName  = $pair['newName'];
+            $renamesList[] = sprintf('%s TO %s', $oldTableName, $newTableName);
+
+            $tablesList[$oldTableName] = $oldTableName;
+            $tablesList[$newTableName] = $newTableName;
+        }
+
+        $query = sprintf('RENAME TABLE %s', implode(',', $renamesList));
+        $this->query($query);
+
+        foreach ($tablesList as $table) {
+            $this->resetDdlCache($table);
+        }
+
+        return true;
+    }
+
 
     /**
      * Add new index to table name
@@ -2429,20 +2682,8 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
             $cond);
 
         $this->resetDdlCache($tableName, $schemaName);
-        return $this->raw_query($sql);
-    }
 
-    /**
-     * Retrieve Foreign Key name
-     * @param string $fkName
-     * @return string
-     */
-    protected function _getForeignKeyName($fkName)
-    {
-        if (substr($fkName, 0, 3) != 'FK_') {
-            $fkName = 'FK_' . $fkName;
-        }
-        return $fkName;
+        return $this->raw_query($sql);
     }
 
     /**
@@ -2466,8 +2707,6 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         $onUpdate = Varien_Db_Adapter_Interface::FK_ACTION_CASCADE,
         $purge = false, $schemaName = null, $refSchemaName = null)
     {
-        $fkName = $this->_getForeignKeyName($fkName);
-
         $this->dropForeignKey($tableName, $fkName, $schemaName);
 
         if ($purge) {
@@ -2697,8 +2936,12 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
         switch ($column['DATA_TYPE']) {
             case 'smallint':
             case 'int':
-            case 'bigint':
                 $value = (int)$value;
+                break;
+            case 'bigint':
+                if (!is_integer($value)) {
+                    $value = sprintf('%.0f', (float)$value);
+                }
                 break;
 
             case 'decimal':
@@ -2750,19 +2993,25 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     /**
      * Generate fragment of SQL, that check condition and return true or false value
      *
-     * @param string $condition     expression
-     * @param string $true          true value
-     * @param string $false         false value
+     * @param Zend_Db_Expr|Zend_Db_Select|string $expression
+     * @param string $true  true value
+     * @param string $false false value
      */
-    public function getCheckSql($condition, $true, $false)
+    public function getCheckSql($expression, $true, $false)
     {
-        return new Zend_Db_Expr("IF({$condition}, {$true}, {$false})");
+        if ($expression instanceof Zend_Db_Expr || $expression instanceof Zend_Db_Select) {
+            $expression = sprintf("IF((%s), %s, %s)", $expression, $true, $false);
+        } else {
+            $expression = sprintf("IF(%s, %s, %s)", $expression, $true, $false);
+        }
+
+        return new Zend_Db_Expr($expression);
     }
 
     /**
      * Returns valid IFNULL expression
      *
-     * @param string $column
+     * @param Zend_Db_Expr|Zend_Db_Select|string $expression
      * @param string $value OPTIONAL. Applies when $expression is NULL
      * @return Zend_Db_Expr
      */
@@ -2783,7 +3032,9 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
      *
      * @param string $valueName Name of value to check
      * @param array $casesResults Cases and results
-     * @param string $defaultValue value to use if value doesn't confirm to any cases
+     * @param string $defaultValue value to use if value doesn't conform to any cases
+     *
+     * @return Zend_Db_Expr
      */
     public function getCaseSql($valueName, $casesResults, $defaultValue = null)
     {
@@ -2931,6 +3182,33 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     public function getDatePartSql($date)
     {
         return new Zend_Db_Expr(sprintf('DATE(%s)', $date));
+    }
+
+    /**
+     * Prepare substring sql function
+     *
+     * @param Zend_Db_Expr|string $stringExpression quoted field name or SQL statement
+     * @param int|string|Zend_Db_Expr $pos
+     * @param int|string|Zend_Db_Expr|null $len
+     * @return Zend_Db_Expr
+     */
+    public function getSubstringSql($stringExpression, $pos, $len = null)
+    {
+        if (is_null($len)) {
+            return new Zend_Db_Expr(sprintf('SUBSTRING(%s, %s)', $stringExpression, $pos));
+        }
+        return new Zend_Db_Expr(sprintf('SUBSTRING(%s, %s, %s)', $stringExpression, $pos, $len));
+    }
+
+    /**
+     * Prepare standard deviation sql function
+     *
+     * @param Zend_Db_Expr|string $expressionField   quoted field name or SQL statement
+     * @return Zend_Db_Expr
+     */
+    public function getStandardDeviationSql($expressionField)
+    {
+        return new Zend_Db_Expr(sprintf('STDDEV_SAMP(%s)', $expressionField));
     }
 
     /**
@@ -3117,7 +3395,7 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
      * @param Varien_Db_Select $select
      * @param string $table     insert into table
      * @param array $fields
-     * @param int $mode
+     * @param bool|int $mode
      * @return string
      */
     public function insertFromSelect(Varien_Db_Select $select, $table, array $fields = array(), $mode = false)
@@ -3143,11 +3421,28 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
                     }
                 }
             }
-            $update = array();
-            foreach ($fields as $field) {
-                $update[] = sprintf('%1$s = VALUES(%1$s)', $this->quoteIdentifier($field));
-            }
 
+            $update = array();
+            foreach ($fields as $k => $v) {
+                $field = $value = null;
+                if (!is_numeric($k)) {
+                    $field = $this->quoteIdentifier($k);
+                    if ($v instanceof Zend_Db_Expr) {
+                        $value = $v->__toString();
+                    } elseif (is_string($v)) {
+                        $value = sprintf('VALUES(%s)', $this->quoteIdentifier($v));
+                    } elseif (is_numeric($v)) {
+                        $value = $this->quoteInto('?', $v);
+                    }
+                } elseif (is_string($v)) {
+                    $value = sprintf('VALUES(%s)', $this->quoteIdentifier($v));
+                    $field = $this->quoteIdentifier($v);
+                }
+
+                if ($field && $value) {
+                    $update[] = sprintf('%s = %s', $field, $value);
+                }
+            }
             if ($update) {
                 $query = sprintf('%s ON DUPLICATE KEY UPDATE %s', $query, join(', ', $update));
             }
@@ -3157,10 +3452,91 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     }
 
     /**
+     * Get insert queries in array for insert by range with step parameter
+     *
+     * @param string $rangeField
+     * @param Varien_Db_Select $select
+     * @param int $stepCount
+     * @return array
+     * @throws Varien_Db_Exception
+     */
+    public function selectsByRange($rangeField, Varien_Db_Select $select, $stepCount = 100)
+    {
+        $queries = array();
+        $fromSelect = $select->getPart(Varien_Db_Select::FROM);
+        if (empty($fromSelect)) {
+            throw new Varien_Db_Exception('Select must have correct FROM part');
+        }
+
+        $tableName = array();
+        $correlationName = '';
+        foreach ($fromSelect as $correlationName => $formPart) {
+            if ($formPart['joinType'] == Varien_Db_Select::FROM) {
+                $tableName = $formPart['tableName'];
+                break;
+            }
+        }
+
+        $selectRange = $this->select()
+            ->from(
+                $tableName,
+                array(
+                    new Zend_Db_Expr('MIN(' . $this->quoteIdentifier($rangeField) . ') AS min'),
+                    new Zend_Db_Expr('MAX(' . $this->quoteIdentifier($rangeField) . ') AS max'),
+                )
+            );
+
+        $rangeResult = $this->fetchRow($selectRange);
+        $min = $rangeResult['min'];
+        $max = $rangeResult['max'];
+
+        while ($min <= $max) {
+            $partialSelect = clone $select;
+            $partialSelect->where(
+                $this->quoteIdentifier($correlationName) . '.'
+                    . $this->quoteIdentifier($rangeField) . ' >= ?', $min
+            )
+            ->where(
+                $this->quoteIdentifier($correlationName) . '.'
+                    . $this->quoteIdentifier($rangeField) . ' < ?', $min+$stepCount
+            );
+            $queries[] = $partialSelect;
+            $min += $stepCount;
+        }
+        return $queries;
+    }
+
+    /**
+     * Convert date format to unix time
+     *
+     * @param string|Zend_Db_Expr $date
+     * @throws Varien_Db_Exception
+     * @return Zend_Db_Expr
+     */
+    public function getUnixTimestamp($date)
+    {
+        $expr = sprintf('UNIX_TIMESTAMP(%s)', $date);
+        return new Zend_Db_Expr($expr);
+    }
+
+    /**
+     * Convert unix time to date format
+     *
+     * @param int|Zend_Db_Expr $timestamp
+     * @return mixed
+     */
+    public function fromUnixtime($timestamp)
+    {
+        $expr = sprintf('FROM_UNIXTIME(%s)', $timestamp);
+        return new Zend_Db_Expr($expr);
+    }
+
+    /**
      * Get update table query using select object for join and update
      *
      * @param Varien_Db_Select $select
      * @param string|array $table
+     * @throws Varien_Db_Exception
      * @return string
      */
     public function updateFromSelect(Varien_Db_Select $select, $table)
@@ -3484,5 +3860,85 @@ class Varien_Db_Adapter_Pdo_Mysql extends Zend_Db_Adapter_Pdo_Mysql implements V
     public function decodeVarbinary($value)
     {
         return $value;
+    }
+
+
+
+
+
+    /**
+     * Returns date that fits into TYPE_DATETIME range and is suggested to act as default 'zero' value
+     * for a column for current RDBMS. Deprecated and left for compatibility only.
+     * In Magento at MySQL there was zero date used for datetime columns. However, zero date it is not supported across
+     * different RDBMS. Thus now it is recommended to use same default value equal for all RDBMS - either NULL
+     * or specific date supported by all RDBMS.
+     *
+     * @deprecated after 1.5.1.0
+     * @return string
+     */
+    public function getSuggestedZeroDate()
+    {
+        return '0000-00-00 00:00:00';
+    }
+
+    /**
+     * Retrieve Foreign Key name
+     *
+     * @deprecated after 1.6.0.0
+     *
+     * @param  string $fkName
+     * @return string
+     */
+    protected function _getForeignKeyName($fkName)
+    {
+        if (substr($fkName, 0, 3) != 'FK_') {
+            $fkName = 'FK_' . $fkName;
+        }
+
+        return $fkName;
+    }
+
+    /**
+     * Drop trigger
+     *
+     * @param string $triggerName
+     * @return Varien_Db_Adapter_Interface
+     */
+    public function dropTrigger($triggerName)
+    {
+        $query = sprintf(
+            'DROP TRIGGER IF EXISTS %s',
+            $this->_getTableName($triggerName)
+        );
+        $this->query($query);
+        return $this;
+    }
+
+    /**
+     * Create new table from provided select statement
+     *
+     * @param string $tableName
+     * @param Zend_Db_Select $select
+     * @param bool $temporary
+     * @return mixed
+     */
+    public function createTableFromSelect($tableName, Zend_Db_Select $select, $temporary = false)
+    {
+        $query = sprintf(
+            'CREATE' . ($temporary ? ' TEMPORARY' : '') . ' TABLE `%s` AS (%s)',
+            $this->_getTableName($tableName),
+            (string)$select
+        );
+        $this->query($query);
+    }
+
+    /**
+     * Check if all transactions have been committed
+     */
+    public function __destruct()
+    {
+        if ($this->_transactionLevel > 0) {
+            trigger_error('Some transactions have not been committed or rolled back', E_USER_ERROR);
+        }
     }
 }

@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Wishlist
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -28,7 +28,6 @@
 /**
  * Wishlist item model
  *
- * @method Mage_Wishlist_Model_Resource_Item _getResource()
  * @method Mage_Wishlist_Model_Resource_Item getResource()
  * @method int getWishlistId()
  * @method Mage_Wishlist_Model_Item setWishlistId(int $value)
@@ -50,7 +49,13 @@ class Mage_Wishlist_Model_Item extends Mage_Core_Model_Abstract
 {
     const EXCEPTION_CODE_NOT_SALABLE            = 901;
     const EXCEPTION_CODE_HAS_REQUIRED_OPTIONS   = 902;
-    const EXCEPTION_CODE_IS_GROUPED_PRODUCT     = 903; // deprecated after 1.4.2.0, because we can store product configuration and add grouped products
+    /**
+     * We can store product store product configuration
+     * and add grouped attributes after 1.4.2.0
+     *
+     * @deprecated after 1.4.2.0
+     */
+    const EXCEPTION_CODE_IS_GROUPED_PRODUCT     = 903;
 
     /**
      * Custom path to download attached file
@@ -107,7 +112,20 @@ class Mage_Wishlist_Model_Item extends Mage_Core_Model_Abstract
      */
     protected function _construct()
     {
+        $this->_cacheTag = 'wishlist_item';
         $this->_init('wishlist/item');
+    }
+
+    /**
+     * Set quantity. If quantity is less than 0 - set it to 1
+     *
+     * @param int $qty
+     * @return Mage_Wishlist_Model_Item
+     */
+    public function setQty($qty)
+    {
+        $this->setData('qty', ($qty >= 0) ? $qty : 1 );
+        return $this;
     }
 
     /**
@@ -343,7 +361,6 @@ class Mage_Wishlist_Model_Item extends Mage_Core_Model_Abstract
     public function addToCart(Mage_Checkout_Model_Cart $cart, $delete = false)
     {
         $product = $this->getProduct();
-
         $storeId = $this->getStoreId();
 
         if ($product->getStatus() != Mage_Catalog_Model_Product_Status::STATUS_ENABLED) {
@@ -352,16 +369,6 @@ class Mage_Wishlist_Model_Item extends Mage_Core_Model_Abstract
 
         if (!$product->isVisibleInSiteVisibility()) {
             if ($product->getStoreId() == $storeId) {
-                return false;
-            }
-            $urlData = Mage::getResourceSingleton('catalog/url')
-                ->getRewriteByProductStore(array($product->getId() => $storeId));
-            if (!isset($urlData[$product->getId()])) {
-                return false;
-            }
-            $product->setUrlDataObject(new Varien_Object($urlData));
-            $visibility = $product->getUrlDataObject()->getVisibility();
-            if (!in_array($visibility, $product->getVisibleInSiteVisibilities())) {
                 return false;
             }
         }

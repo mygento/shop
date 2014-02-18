@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <sections>
+        <carriers>
+            <groups>
+                <dellin translate="label" module="dellin">
+                    <label>Mygento Деловые Линии (with custom observer)</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>99</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <versioninfo>
+                            <frontend_model>dellin/version</frontend_model>
+                            <sort_order>0</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </versioninfo>
+                        <active translate="label">
+                            <label>Enabled</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </active>
+                        <name translate="label">
+                            <label>Method Name</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </name>
+                        <title translate="label">
+                            <label>Title</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </title>
+                        <specificerrmsg translate="label">
+                            <label>Displayed Error Message</label>
+                            <frontend_type>textarea</frontend_type>
+                            <sort_order>4</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </specificerrmsg>
+                        
+                        
+                        
+                        
+                        <heading_1 translate="label">
+                            <label>Additional settings</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </heading_1>              
+                        <cities translate="label">
+                            <label>Origin city</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>dellin/cities</source_model> 
+                            <sort_order>11</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </cities>
+                        <packaging translate="label">
+                            <label>Packaging</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>dellin/packaging</source_model> 
+                            <sort_order>12</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </packaging>
+                        <fromdoors translate="label">
+                            <label>Delivery from doors</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>13</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </fromdoors>
+                        <todoors translate="label">
+                            <label>Delivery to doors</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>14</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </todoors>
+                        <ins translate="label">
+                            <label>Add insurance</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>15</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </ins>
+                        <insval translate="label">
+                            <label>Insurance price, in % of order</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>16</sort_order>
+                            <comment>Example: 100</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <ins>1</ins>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </insval>
+                        <dumb translate="label">
+                            <label>Calculate volume by typical volume? (Dumb)</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>If yes: volume=typical volume*cart count;If no: volume=item volume*item count;</comment>
+                            <sort_order>17</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </dumb>
+                        <volume translate="label">
+                            <label>Typical volume for item</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>18</sort_order>
+                            <comment>Required, in m3.</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <depends>
+                                <dumb>1</dumb>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </volume>
+                        <weight translate="label">
+                            <label>Typical weight for item</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>19</sort_order>
+                            <comment>Required</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <comment>Required, in kg.</comment>
+                            <depends>
+                                <dumb>1</dumb>
+                            </depends>
+                            <validate>
+                                required-entry
+                            </validate>
+                        </weight>
+                        <attr translate="label">
+                            <label>Attribute code</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>dellin/entity_attribute_source_list</source_model>
+                            <comment>Attribute for volume</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                            <sort_order>20</sort_order>
+                        </attr>
+                        <calctype translate="label">
+                            <label>Calculating type</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>dellin/calc</source_model> 
+                            <comment>XML (from dellin.ru) or KLADR</comment>
+                            <sort_order>21</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </calctype>
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        <heading_2 translate="label">
+                            <label>Technical section</label>
+                            <frontend_model>adminhtml/system_config_form_field_heading</frontend_model>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </heading_2>              
+                        <jquery translate="label">
+                            <label>Enable internal jQuery + UI</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Enable internally jQuery for autocomplete. If you already have jQuery enabled in your store, choose NO</comment>
+                            <sort_order>31</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </jquery>
+                        <json translate="label">
+                            <label>Enable Json helper</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Autocomplete helper for billing &amp; shipping city inputs</comment>
+                            <sort_order>32</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </json>
+                        <limit translate="label">
+                            <label>Limit for autocomplete helper</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>33</sort_order>
+                            <comment>Limit count of autocomplete variants</comment>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </limit>
+                        <check translate="label">
+                            <label>Update city and package from Dellin</label>
+                            <frontend_type>button</frontend_type>
+                            <frontend_model>dellin/adminhtml_system_config_form_button</frontend_model>
+                            <sort_order>60</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </check>
+                        <emptyevent translate="label">
+                            <label>Do not send calculation to event</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment>Send empty shipping/rate_result to event</comment>
+                            <sort_order>61</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>  
+                            <can_be_empty>0</can_be_empty>
+                        </emptyevent>
+                        <debug translate="label">
+                            <label>Debug mode</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>100</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </debug>
+                    </fields>
+                </dellin>
+            </groups>
+        </carriers>
+    </sections>
+</config>

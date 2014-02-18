@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Bundle
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -81,17 +81,17 @@ class Mage_Bundle_Block_Catalog_Product_View_Type_Bundle_Option extends Mage_Bun
                     ->getData('bundle_option_qty/' . $_option->getId());
 
         if (empty($selectedOptions) && $_default) {
-            $_defaultQty = $_default->getSelectionQty()*1;
+            $_defaultQty = $_default->getSelectionQty() * 1;
             $_canChangeQty = $_default->getSelectionCanChangeQty();
         } elseif (!$inPreConfigured && $selectedOptions && is_numeric($selectedOptions)) {
             $selectedSelection = $_option->getSelectionById($selectedOptions);
-            $_defaultQty = $selectedSelection->getSelectionQty()*1;
+            $_defaultQty = $selectedSelection->getSelectionQty() * 1;
             $_canChangeQty = $selectedSelection->getSelectionCanChangeQty();
         } elseif (!$this->_showSingle() || $inPreConfigured) {
             $_defaultQty = $this->_getSelectedQty();
             $_canChangeQty = (bool)$_defaultQty;
         } else {
-            $_defaultQty = $_selections[0]->getSelectionQty()*1;
+            $_defaultQty = $_selections[0]->getSelectionQty() * 1;
             $_canChangeQty = $_selections[0]->getSelectionCanChangeQty();
         }
 
@@ -163,6 +163,11 @@ class Mage_Bundle_Block_Catalog_Product_View_Type_Bundle_Option extends Mage_Bun
         return $selectedQty;
     }
 
+    /**
+     * Get product model
+     *
+     * @return Mage_Catalog_Model_Product
+     */
     public function getProduct()
     {
         if (!$this->hasData('product')) {
@@ -171,17 +176,24 @@ class Mage_Bundle_Block_Catalog_Product_View_Type_Bundle_Option extends Mage_Bun
         return $this->getData('product');
     }
 
+    /**
+     * Returns the formatted string for the quantity chosen for the given selection
+     *
+     * @param Mage_Catalog_Model_Proudct $_selection
+     * @param bool                       $includeContainer
+     * @return string
+     */
     public function getSelectionQtyTitlePrice($_selection, $includeContainer = true)
     {
         $price = $this->getProduct()->getPriceModel()->getSelectionPreFinalPrice($this->getProduct(), $_selection);
         $this->setFormatProduct($_selection);
-        $priceTitle = $_selection->getSelectionQty()*1 . ' x ' . $_selection->getName();
+        $priceTitle = $_selection->getSelectionQty() * 1 . ' x ' . $this->escapeHtml($_selection->getName());
 
         $priceTitle .= ' &nbsp; ' . ($includeContainer ? '<span class="price-notice">' : '')
             . '+' . $this->formatPriceString($price, $includeContainer)
             . ($includeContainer ? '</span>' : '');
 
-        return  $priceTitle;
+        return $priceTitle;
     }
 
     /**
@@ -214,7 +226,7 @@ class Mage_Bundle_Block_Catalog_Product_View_Type_Bundle_Option extends Mage_Bun
     {
         $price = $this->getProduct()->getPriceModel()->getSelectionPreFinalPrice($this->getProduct(), $_selection, 1);
         $this->setFormatProduct($_selection);
-        $priceTitle = $_selection->getName();
+        $priceTitle = $this->escapeHtml($_selection->getName());
         $priceTitle .= ' &nbsp; ' . ($includeContainer ? '<span class="price-notice">' : '')
             . '+' . $this->formatPriceString($price, $includeContainer)
             . ($includeContainer ? '</span>' : '');
@@ -248,12 +260,12 @@ class Mage_Bundle_Block_Catalog_Product_View_Type_Bundle_Option extends Mage_Bun
         $taxHelper  = Mage::helper('tax');
         $coreHelper = $this->helper('core');
         $currentProduct = $this->getProduct();
-        if (!$currentProduct->getPriceType() == Mage_Bundle_Model_Product_Price::PRICE_TYPE_FIXED
+        if ($currentProduct->getPriceType() == Mage_Bundle_Model_Product_Price::PRICE_TYPE_DYNAMIC
                 && $this->getFormatProduct()
         ) {
             $product = $this->getFormatProduct();
         } else {
-            $product = $this->getProduct();
+            $product = $currentProduct;
         }
 
         $priceTax    = $taxHelper->getPrice($product, $price);

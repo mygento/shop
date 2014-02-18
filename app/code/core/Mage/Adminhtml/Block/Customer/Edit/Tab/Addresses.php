@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -128,12 +128,16 @@ class Mage_Adminhtml_Block_Customer_Edit_Tab_Addresses extends Mage_Adminhtml_Bl
                 ->processStreetAttribute($attributes['street']);
         }
         foreach ($attributes as $attribute) {
+            /* @var $attribute Mage_Eav_Model_Entity_Attribute */
+            $attribute->setFrontendLabel(Mage::helper('customer')->__($attribute->getFrontend()->getLabel()));
             $attribute->unsIsVisible();
         }
         $this->_setFieldset($attributes, $fieldset);
 
         $regionElement = $form->getElement('region');
         if ($regionElement) {
+            $isRequired = Mage::helper('directory')->isRegionRequired($addressModel->getCountryId());
+            $regionElement->setRequired($isRequired);
             $regionElement->setRenderer(Mage::getModel('adminhtml/customer_renderer_region'));
         }
 

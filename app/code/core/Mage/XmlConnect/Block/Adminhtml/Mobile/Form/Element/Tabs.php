@@ -20,10 +20,17 @@
  *
  * @category    Mage
  * @package     Mage_XmlConnect
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+/**
+ * XmlConnect tabs form element
+ *
+ * @category    Mage
+ * @package     Mage_XmlConnect
+ * @author      Magento Core Team <core@magentocommerce.com>
+ */
 class Mage_XmlConnect_Block_Adminhtml_Mobile_Form_Element_Tabs extends Varien_Data_Form_Element_Text
 {
     /**
@@ -38,7 +45,7 @@ class Mage_XmlConnect_Block_Adminhtml_Mobile_Form_Element_Tabs extends Varien_Da
         }
 
         $blockClassName = Mage::getConfig()->getBlockClassName('adminhtml/template');
-        $block = new $blockClassName;
+        $block = Mage::getModel($blockClassName);
         $device = Mage::helper('xmlconnect')->getDeviceType();
         if (array_key_exists($device, Mage::helper('xmlconnect')->getSupportedDevices())) {
             $template = 'xmlconnect/form/element/app_tabs_' . strtolower($device) . '.phtml';

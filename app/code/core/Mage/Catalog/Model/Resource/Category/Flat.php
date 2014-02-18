@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Catalog
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -32,8 +32,13 @@
  * @package     Mage_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource_Db_Abstract
+class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Index_Model_Resource_Abstract
 {
+    /**
+     * Amount of categories to be processed in batch
+     */
+    const CATEGORY_BATCH = 500;
+
     /**
      * Store id
      *
@@ -84,9 +89,18 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
     protected $_inactiveCategoryIds      = null;
 
     /**
-     * Is rebuild
+     * Store flag which defines if Catalog Category Flat Data has been initialized
      *
-     * @var boolean
+     * @var array
+     */
+    protected $_isBuilt                  = array();
+
+    /**
+     * Store flag which defines if Catalog Category Flat Data has been initialized
+     *
+     * @deprecated after 1.7.0.0 use $this->_isBuilt instead
+     *
+     * @var bool|null
      */
     protected $_isRebuilt                = null;
 
@@ -96,6 +110,31 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
      * @var array
      */
     protected $_storesRootCategories;
+
+    /**
+     * Whether table changes are allowed
+     *
+     * @var bool
+     */
+    protected $_allowTableChanges        = true;
+
+    /**
+     * Factory instance
+     *
+     * @var Mage_Catalog_Model_Factory
+     */
+    protected $_factory;
+
+    /**
+     * Initialize factory instance
+     *
+     * @param array $args
+     */
+    public function __construct(array $args = array())
+    {
+        $this->_factory = !empty($args['factory']) ? $args['factory'] : Mage::getSingleton('catalog/factory');
+        parent::__construct();
+    }
 
     /**
      * Resource initializations
@@ -175,7 +214,7 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
     /**
      * Add inactive categories ids
      *
-     * @param unknown_type $ids
+     * @param array $ids
      * @return Mage_Catalog_Model_Resource_Category_Flat
      */
     public function addInactiveCategoryIds($ids)
@@ -216,12 +255,13 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
     /**
      * Load nodes by parent id
      *
-     * @param unknown_type $parentNode
+     * @param Mage_Catalog_Model_Category|int $parentNode
      * @param integer $recursionLevel
      * @param integer $storeId
+     * @param bool $onlyActive
      * @return Mage_Catalog_Model_Resource_Category_Flat
      */
-    protected function _loadNodes($parentNode = null, $recursionLevel = 0, $storeId = 0)
+    protected function _loadNodes($parentNode = null, $recursionLevel = 0, $storeId = 0, $onlyActive = true)
     {
         $_conn = $this->_getReadAdapter();
         $startLevel = 1;
@@ -234,7 +274,8 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
                 ->from($this->getMainStoreTable($storeId))
                 ->where('entity_id = ?', $parentNode)
                 ->where('store_id = ?', $storeId);
-            if ($parentNode = $_conn->fetchRow($selectParent)) {
+            $parentNode = $_conn->fetchRow($selectParent);
+            if ($parentNode) {
                 $parentPath = $parentNode['path'];
                 $startLevel = $parentNode['level'];
             }
@@ -247,17 +288,17 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
                     new Zend_Db_Expr('main_table.' . $_conn->quoteIdentifier('path')),
                     'is_active',
                     'is_anchor'))
-            ->joinLeft(
-                array('url_rewrite'=>$this->getTable('core/url_rewrite')),
-                'url_rewrite.category_id=main_table.entity_id AND url_rewrite.is_system=1 AND ' .
-                $_conn->quoteInto(
-                'url_rewrite.product_id IS NULL AND url_rewrite.store_id=? AND ',
-                $storeId) .
-                $_conn->prepareSqlCondition('url_rewrite.id_path', array('like' => 'category/%')),
-                array('request_path' => 'url_rewrite.request_path'))
-            ->where('main_table.is_active = ?', '1')
+
             ->where('main_table.include_in_menu = ?', '1')
             ->order('main_table.position');
+
+        if ($onlyActive) {
+            $select->where('main_table.is_active = ?', '1');
+        }
+
+        /** @var $urlRewrite Mage_Catalog_Helper_Category_Url_Rewrite_Interface */
+        $urlRewrite = $this->_factory->getCategoryUrlRewriteHelper();
+        $urlRewrite->joinTableToSelect($select, $storeId);
 
         if ($parentPath) {
             $select->where($_conn->quoteInto("main_table.path like ?", "$parentPath/%"));
@@ -272,6 +313,9 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
         if (!empty($inactiveCategories)) {
             $select->where('main_table.entity_id NOT IN (?)', $inactiveCategories);
         }
+
+        // Allow extensions to modify select (e.g. add custom category attributes to select)
+        Mage::dispatchEvent('catalog_category_flat_loadnodes_before', array('select' => $select));
 
         $arrNodes = $_conn->fetchAll($select);
         $nodes = array();
@@ -416,35 +460,36 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
     }
 
     /**
-     * Check if category flat data is rebuilt
+     * Check if Catalog Category Flat Data has been initialized
      *
+     * @param bool|int|\Mage_Core_Model_Store|null $storeView Store(id) for which the value is checked
      * @return bool
      */
-    public function isRebuilt()
+    public function isBuilt($storeView = null)
     {
-        if ($this->_isRebuilt === null) {
-            $defaultStoreView = Mage::app()->getDefaultStoreView();
-            if ($defaultStoreView === null) {
-                $defaultStoreId = Mage_Core_Model_App::ADMIN_STORE_ID;
-            } else {
-                $defaultStoreId = $defaultStoreView->getId();
-            }
+        $storeView = is_null($storeView) ? Mage::app()->getDefaultStoreView() : Mage::app()->getStore($storeView);
+        if ($storeView === null) {
+            $storeId = Mage_Core_Model_App::ADMIN_STORE_ID;
+        } else {
+            $storeId = $storeView->getId();
+        }
+        if (!isset($this->_isBuilt[$storeId])) {
             $select = $this->_getReadAdapter()->select()
-                ->from($this->getMainStoreTable($defaultStoreId), 'entity_id')
+                ->from($this->getMainStoreTable($storeId), 'entity_id')
                 ->limit(1);
             try {
-                $this->_isRebuilt = (bool) $this->_getReadAdapter()->fetchOne($select);
+                $this->_isBuilt[$storeId] = (bool)$this->_getReadAdapter()->fetchOne($select);
             } catch (Exception $e) {
-                $this->_isRebuilt = false;
+                $this->_isBuilt[$storeId] = false;
             }
         }
-        return $this->_isRebuilt;
+        return $this->_isBuilt[$storeId];
     }
 
     /**
      * Rebuild flat data from eav
      *
-     * @param unknown_type $stores
+     * @param array|null $stores
      * @return Mage_Catalog_Model_Resource_Category_Flat
      */
     public function rebuild($stores = null)
@@ -462,7 +507,9 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
         $categoriesIds = array();
         /* @var $store Mage_Core_Model_Store */
         foreach ($stores as $store) {
-            $this->_createTable($store->getId());
+            if ($this->_allowTableChanges) {
+                $this->_createTable($store->getId());
+            }
 
             if (!isset($categories[$store->getRootCategoryId()])) {
                 $select = $this->_getWriteAdapter()->select()
@@ -476,7 +523,7 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
                     $categoriesIds[$store->getRootCategoryId()][] = $category['entity_id'];
                 }
             }
-            $categoriesIdsChunks = array_chunk($categoriesIds[$store->getRootCategoryId()], 500);
+            $categoriesIdsChunks = array_chunk($categoriesIds[$store->getRootCategoryId()], self::CATEGORY_BATCH);
             foreach ($categoriesIdsChunks as $categoriesIdsChunk) {
                 $attributesData = $this->_getAttributeValues($categoriesIdsChunk, $store->getId());
                 $data = array();
@@ -563,7 +610,9 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
 
         // Adding indexes
         $table->addIndex(
-            $_writeAdapter->getIndexName($tableName, array('entity_id')), array('entity_id'), array('type' => 'primary')
+            $_writeAdapter->getIndexName($tableName, array('entity_id')),
+            array('entity_id'),
+            array('type' => 'primary')
         );
         $table->addIndex(
             $_writeAdapter->getIndexName($tableName, array('store_id')), array('store_id'), array('type' => 'index')
@@ -792,10 +841,10 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
      *
      * @param string $type
      * @param array $entityIds
-     * @param integer $sid
+     * @param integer $storeId
      * @return array
      */
-    protected function _getAttributeTypeValues($type, $entityIds, $sid)
+    protected function _getAttributeTypeValues($type, $entityIds, $storeId)
     {
         $select = $this->_getWriteAdapter()->select()
             ->from(
@@ -804,14 +853,16 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
             )
             ->joinLeft(
                 array('store' => $this->getTable(array('catalog/category', $type))),
-                'store.entity_id = def.entity_id AND store.attribute_id = def.attribute_id AND store.store_id = '.$sid,
-                array('value' => $this->_getWriteAdapter()->getCheckSql('store.value_id > 0',
+                'store.entity_id = def.entity_id AND store.attribute_id = def.attribute_id '
+                    . 'AND store.store_id = ' . $storeId,
+                array('value' => $this->_getWriteAdapter()->getCheckSql(
+                    'store.value_id > 0',
                     $this->_getWriteAdapter()->quoteIdentifier('store.value'),
-                    $this->_getWriteAdapter()->quoteIdentifier('def.value'))
-                )
+                    $this->_getWriteAdapter()->quoteIdentifier('def.value')
+                ))
             )
             ->where('def.entity_id IN (?)', $entityIds)
-            ->where('def.store_id = ?', Mage_Catalog_Model_Abstract::DEFAULT_STORE_ID);
+            ->where('def.store_id IN (?)', array(Mage_Catalog_Model_Abstract::DEFAULT_STORE_ID, $storeId));
         return $this->_getWriteAdapter()->fetchAll($select);
     }
 
@@ -1087,7 +1138,7 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
      *  'field_name' => 'value'
      * )
      *
-     * @param Mage_Catalog_Model_Category $category
+     * @param Varien_Object $category
      * @param array $replaceFields
      * @return array
      */
@@ -1097,8 +1148,9 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
         $this->_getWriteAdapter()->resetDdlCache($table);
         $table = $this->_getWriteAdapter()->describeTable($table);
         $data = array();
-        foreach ($table as $column=>$columnData) {
-            if (null !== $category->getData($column)) {
+        $idFieldName = Mage::getSingleton('catalog/category')->getIdFieldName();
+        foreach ($table as $column => $columnData) {
+            if ($column != $idFieldName || null !== $category->getData($column)) {
                 if (key_exists($column, $replaceFields)) {
                     $value = $category->getData($replaceFields[$column]);
                 } else {
@@ -1165,30 +1217,26 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
      * Return parent categories of category
      *
      * @param Mage_Catalog_Model_Category $category
-     * @param unknown_type $isActive
+     * @param bool $isActive
      * @return array
      */
     public function getParentCategories($category, $isActive = true)
     {
         $categories = array();
-        $read = $this->_getReadAdapter();
-        $select = $read->select()
+        $select = $this->_getReadAdapter()->select()
             ->from(
                 array('main_table' => $this->getMainStoreTable($category->getStoreId())),
                 array('main_table.entity_id', 'main_table.name')
             )
-            ->joinLeft(
-                array('url_rewrite'=>$this->getTable('core/url_rewrite')),
-                'url_rewrite.category_id=main_table.entity_id AND url_rewrite.is_system=1 AND '.
-                $read->quoteInto('url_rewrite.product_id IS NULL AND url_rewrite.store_id=? AND ',
-                $category->getStoreId() ).
-                $read->prepareSqlCondition('url_rewrite.id_path', array('like' => 'category/%')),
-                array('request_path' => 'url_rewrite.request_path'))
             ->where('main_table.entity_id IN (?)', array_reverse(explode(',', $category->getPathInStore())));
         if ($isActive) {
             $select->where('main_table.is_active = ?', '1');
         }
         $select->order('main_table.path ASC');
+
+        $urlRewrite = $this->_factory->getCategoryUrlRewriteHelper();
+        $urlRewrite->joinTableToSelect($select, $category->getStoreId());
+
         $result = $this->_getReadAdapter()->fetchAll($select);
         foreach ($result as $row) {
             $row['id'] = $row['entity_id'];
@@ -1231,6 +1279,17 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
     }
 
     /**
+     * Return children categories of category with inactive
+     *
+     * @param Mage_Catalog_Model_Category $category
+     * @return array
+     */
+    public function getChildrenCategoriesWithInactive($category)
+    {
+        return $this->_loadNodes($category, 1, $category->getStoreId(), false);
+    }
+
+    /**
      * Check is category in list of store categories
      *
      * @param Mage_Catalog_Model_Category $category
@@ -1246,8 +1305,8 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
      * Return children ids of category
      *
      * @param Mage_Catalog_Model_Category $category
-     * @param unknown_type $recursive
-     * @param unknown_type $isActive
+     * @param bool $recursive
+     * @param bool $isActive
      * @return array
      */
     public function getChildren($category, $recursive = true, $isActive = true)
@@ -1388,5 +1447,62 @@ class Mage_Catalog_Model_Resource_Category_Flat extends Mage_Core_Model_Resource
         }
 
         return $this->_storesRootCategories;
+    }
+
+    /**
+     * Creating table and adding attributes as fields to table for all stores
+     *
+     * @return Mage_Catalog_Model_Resource_Category_Flat
+     */
+    protected function _createTables()
+    {
+        if ($this->_allowTableChanges) {
+            foreach (Mage::app()->getStores() as $store) {
+                $this->_createTable($store->getId());
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Transactional rebuild flat data from eav
+     *
+     * @throws Exception
+     * @return Mage_Catalog_Model_Resource_Category_Flat
+     */
+    public function reindexAll()
+    {
+        $this->_createTables();
+        $allowTableChanges = $this->_allowTableChanges;
+        if ($allowTableChanges) {
+            $this->_allowTableChanges = false;
+        }
+        $this->beginTransaction();
+        try {
+            $this->rebuild();
+            $this->commit();
+            if ($allowTableChanges) {
+                $this->_allowTableChanges = true;
+            }
+        } catch (Exception $e) {
+            $this->rollBack();
+            if ($allowTableChanges) {
+                $this->_allowTableChanges = true;
+            }
+            throw $e;
+        }
+        return $this;
+    }
+
+    /**
+     * Check if Catalog Category Flat Data has been initialized
+     *
+     * @deprecated use Mage_Catalog_Model_Resource_Category_Flat::isBuilt() instead
+     *
+     * @return bool
+     */
+    public function isRebuilt()
+    {
+        return $this->isBuilt();
     }
 }

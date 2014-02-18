@@ -192,20 +192,22 @@ Customer account pages, rendered for all tabs in dashboard
 
 	        <block type="core/template" name="catalog.compare.sidebar" template="catalog/product/compare/sidebar.phtml"/>
 
-	        <block type="sales/reorder_sidebar" name="sale.reorder.sidebar" as="reorder" template="sales/reorder/sidebar.phtml"/>-->
-	        <remove name="tags_popular"/>
+            <block type="sales/reorder_sidebar" name="sale.reorder.sidebar" as="reorder" template="sales/reorder/sidebar.phtml"/>-->
+            <remove name="tags_popular"/>
         </reference>
     </customer_account>
 
-<!--
-Customer account home dashboard layout
--->
+    <!--
+    Customer account home dashboard layout
+    -->
 
     <customer_account_index>
         <update handle="customer_account"/>
         <!-- Mage_Customer -->
         <reference name="root">
-            <action method="setTemplate"><template>page/2columns-left.phtml</template></action>
+            <action method="setTemplate">
+                <template>page/2columns-left.phtml</template>
+            </action>
         </reference>
         <reference name="content">
             <block type="customer/account_dashboard" name="customer_account_dashboard" template="customer/account/dashboard.phtml">
@@ -221,9 +223,9 @@ Customer account home dashboard layout
 
     </customer_account_index>
 
-<!--
-Customer account address book
--->
+    <!--
+    Customer account address book
+    -->
 
     <customer_address_index>
         <!-- Mage_Customer -->
@@ -233,9 +235,9 @@ Customer account address book
         </reference>
     </customer_address_index>
 
-<!--
-Customer account address edit page
--->
+    <!--
+    Customer account address edit page
+    -->
 
     <customer_address_form>
         <!-- Mage_Customer -->
@@ -244,5 +246,28 @@ Customer account address edit page
             <block type="customer/address_edit" name="customer_address_edit" template="customer/address/edit.phtml"/>
         </reference>
     </customer_address_form>
+    
+    <customer_account_resetpassword translate="label">
+        <label>Reset a Password</label>
+        <remove name="right"/>
+        <remove name="left"/>
+ 
+        <reference name="head">
+            <action method="setTitle" translate="title" module="customer">
+                <title>Reset a Password</title>
+            </action>
+        </reference>
+        <reference name="root">
+            <action method="setTemplate">
+                <template>page/1column.phtml</template>
+            </action>
+            <action method="setHeaderTitle" translate="title" module="customer">
+                <title>Reset a Password</title>
+            </action>
+        </reference>
+        <reference name="content">
+            <block type="customer/account_resetpassword" name="resetPassword" template="customer/form/resetforgottenpassword.phtml"/>
+        </reference>
+    </customer_account_resetpassword>
 
 </layout>

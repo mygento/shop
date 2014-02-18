@@ -20,19 +20,46 @@
  *
  * @category    Mage
  * @package     Mage_Customer
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * Address abstract model
  *
- * @author      Magento Core Team <core@magentocommerce.com>
+ * @category   Mage
+ * @package    Mage_Customer
+ * @author     Magento Core Team <core@magentocommerce.com>
  */
 class Mage_Customer_Model_Address_Abstract extends Mage_Core_Model_Abstract
 {
+    /**
+     * Possible customer address types
+     */
+    const TYPE_BILLING  = 'billing';
+    const TYPE_SHIPPING = 'shipping';
+
+    /**
+     * Prefix of model events
+     *
+     * @var string
+     */
     protected $_eventPrefix = 'customer_address';
+
+    /**
+     * Name of event object
+     *
+     * @var string
+     */
     protected $_eventObject = 'customer_address';
+
+    /**
+     * List of errors
+     *
+     * @var array
+     */
+    protected $_errors = array();
+
     /**
      * Directory country models
      *
@@ -231,7 +258,8 @@ class Mage_Customer_Model_Address_Abstract extends Mage_Core_Model_Abstract
                 $this->setData('region_id', $region);
                 $this->unsRegion();
             } else {
-                $regionModel = Mage::getModel('directory/region')->loadByCode($this->getRegionCode(), $this->getCountryId());
+                $regionModel = Mage::getModel('directory/region')
+                    ->loadByCode($this->getRegionCode(), $this->getCountryId());
                 $this->setData('region_id', $regionModel->getId());
             }
         }
@@ -241,7 +269,8 @@ class Mage_Customer_Model_Address_Abstract extends Mage_Core_Model_Abstract
     public function getCountry()
     {
         /*if ($this->getData('country_id') && !$this->getData('country')) {
-            $this->setData('country', Mage::getModel('directory/country')->load($this->getData('country_id'))->getIso2Code());
+            $this->setData('country', Mage::getModel('directory/country')
+                ->load($this->getData('country_id'))->getIso2Code());
         }
         return $this->getData('country');*/
         $country = $this->getCountryId();
@@ -256,7 +285,8 @@ class Mage_Customer_Model_Address_Abstract extends Mage_Core_Model_Abstract
     public function getCountryModel()
     {
         if(!isset(self::$_countryModels[$this->getCountryId()])) {
-            self::$_countryModels[$this->getCountryId()] = Mage::getModel('directory/country')->load($this->getCountryId());
+            self::$_countryModels[$this->getCountryId()] = Mage::getModel('directory/country')
+                ->load($this->getCountryId());
         }
 
         return self::$_countryModels[$this->getCountryId()];
@@ -293,7 +323,8 @@ class Mage_Customer_Model_Address_Abstract extends Mage_Core_Model_Abstract
      */
     public function getFormated($html=false)
     {
-        return $this->format($html ? 'html' : 'text');//Mage::getModel('directory/country')->load($this->getCountryId())->formatAddress($this, $html);
+        return $this->format($html ? 'html' : 'text');
+        //Mage::getModel('directory/country')->load($this->getCountryId())->formatAddress($this, $html);
     }
 
     public function format($type)
@@ -326,50 +357,94 @@ class Mage_Customer_Model_Address_Abstract extends Mage_Core_Model_Abstract
     /**
      * Validate address attribute values
      *
-     * @return bool
+     * @return array | bool
      */
     public function validate()
     {
-        $errors = array();
-        $helper = Mage::helper('customer');
+        $this->_resetErrors();
+
         $this->implodeStreetAddress();
+
         if (!Zend_Validate::is($this->getFirstname(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the first name.');
+            $this->addError(Mage::helper('customer')->__('Please enter the first name.'));
         }
 
         if (!Zend_Validate::is($this->getLastname(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the last name.');
+            $this->addError(Mage::helper('customer')->__('Please enter the last name.'));
         }
 
         if (!Zend_Validate::is($this->getStreet(1), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the street.');
+            $this->addError(Mage::helper('customer')->__('Please enter the street.'));
         }
 
         if (!Zend_Validate::is($this->getCity(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the city.');
+            $this->addError(Mage::helper('customer')->__('Please enter the city.'));
         }
 
         if (!Zend_Validate::is($this->getTelephone(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the telephone number.');
+            $this->addError(Mage::helper('customer')->__('Please enter the telephone number.'));
         }
 
         $_havingOptionalZip = Mage::helper('directory')->getCountriesWithOptionalZip();
-        if (!in_array($this->getCountryId(), $_havingOptionalZip) && !Zend_Validate::is($this->getPostcode(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the zip/postal code.');
+        if (!in_array($this->getCountryId(), $_havingOptionalZip)
+            && !Zend_Validate::is($this->getPostcode(), 'NotEmpty')
+        ) {
+            $this->addError(Mage::helper('customer')->__('Please enter the zip/postal code.'));
         }
 
         if (!Zend_Validate::is($this->getCountryId(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the country.');
+            $this->addError(Mage::helper('customer')->__('Please enter the country.'));
         }
 
         if ($this->getCountryModel()->getRegionCollection()->getSize()
-               && !Zend_Validate::is($this->getRegionId(), 'NotEmpty')) {
-            $errors[] = $helper->__('Please enter the state/province.');
+               && !Zend_Validate::is($this->getRegionId(), 'NotEmpty')
+               && Mage::helper('directory')->isRegionRequired($this->getCountryId())
+        ) {
+            $this->addError(Mage::helper('customer')->__('Please enter the state/province.'));
         }
+
+        Mage::dispatchEvent('customer_address_validation_after', array('address' => $this));
+
+        $errors = $this->_getErrors();
+
+        $this->_resetErrors();
 
         if (empty($errors) || $this->getShouldIgnoreValidation()) {
             return true;
         }
         return $errors;
+    }
+
+    /**
+     * Add error
+     *
+     * @param $error
+     * @return Mage_Customer_Model_Address_Abstract
+     */
+    public function addError($error)
+    {
+        $this->_errors[] = $error;
+        return $this;
+    }
+
+    /**
+     * Retreive errors
+     *
+     * @return array
+     */
+    protected function _getErrors()
+    {
+        return $this->_errors;
+    }
+
+    /**
+     * Reset errors array
+     *
+     * @return Mage_Customer_Model_Address_Abstract
+     */
+    protected function _resetErrors()
+    {
+        $this->_errors = array();
+        return $this;
     }
 }

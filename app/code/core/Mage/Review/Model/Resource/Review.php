@@ -20,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Review
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -242,10 +242,10 @@ class Mage_Review_Model_Resource_Review extends Mage_Core_Model_Resource_Db_Abst
     /**
      * Perform actions after object delete
      *
-     * @param Varien_Object $object
+     * @param Mage_Core_Model_Abstract $object
      * @return Mage_Review_Model_Resource_Review
      */
-    protected function _afterDelete(Mage_Core_Model_Abstract $object)
+    public function afterDeleteCommit(Mage_Core_Model_Abstract $object)
     {
         $this->aggregate($object);
 
@@ -285,7 +285,7 @@ class Mage_Review_Model_Resource_Review extends Mage_Core_Model_Resource_Db_Abst
         }
         if ($approvedOnly) {
             $select->where("{$this->_reviewTable}.status_id = :status_id");
-            $bind[':status_id'] = 1;
+            $bind[':status_id'] = Mage_Review_Model_Review::STATUS_APPROVED;
         }
         return $adapter->fetchOne($select, $bind);
     }
@@ -313,7 +313,11 @@ class Mage_Review_Model_Resource_Review extends Mage_Core_Model_Resource_Db_Abst
                 $ratingSummary = $ratingSummaryObject->getSum();
             }
 
-            $reviewsCount = $this->getTotalReviews($object->getEntityPkValue(), true, $ratingSummaryObject->getStoreId());
+            $reviewsCount = $this->getTotalReviews(
+                $object->getEntityPkValue(),
+                true,
+                $ratingSummaryObject->getStoreId()
+            );
             $select = $readAdapter->select()
                 ->from($this->_aggregateTable)
                 ->where('entity_pk_value = :pk_value')

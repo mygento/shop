@@ -1,8 +1,4 @@
 <?php
-// <<< INIT
-    ini_set('error_reporting', E_ALL &~E_STRICT &~E_NOTICE);
-    ini_set('display_errors', '1'); 
-// >>> INIT     
 /**
  * Magento
  *
@@ -24,7 +20,7 @@
  *
  * @category    Mage
  * @package     Mage_Catalog
- * @copyright   Copyright (c) 2011 Magento Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
@@ -266,9 +262,6 @@ class Mage_Catalog_Model_Product_Image extends Mage_Core_Model_Abstract
      */
     public function setBaseFile($file)
     {
-        // ITEAMO <<< 
-        // return false;
-        // >>> ITEAMO 
         $this->_isBaseFilePlaceholder = false;
 
         if (($file) && (0 !== strpos($file, '/', 0))) {
@@ -378,20 +371,20 @@ class Mage_Catalog_Model_Product_Image extends Mage_Core_Model_Abstract
      * @return Varien_Image
      */
     public function getImageProcessor()
-    {        
+    {
         if( !$this->_processor ) {
 //            var_dump($this->_checkMemory());
 //            if (!$this->_checkMemory()) {
 //                $this->_baseFile = null;
-//            }                        
-            $this->_processor = new Varien_Image($this->getBaseFile());            
+//            }
+            $this->_processor = new Varien_Image($this->getBaseFile());
         }
         $this->_processor->keepAspectRatio($this->_keepAspectRatio);
         $this->_processor->keepFrame($this->_keepFrame);
         $this->_processor->keepTransparency($this->_keepTransparency);
         $this->_processor->constrainOnly($this->_constrainOnly);
         $this->_processor->backgroundColor($this->_backgroundColor);
-        $this->_processor->quality($this->_quality);        
+        $this->_processor->quality($this->_quality);
         return $this->_processor;
     }
 
@@ -400,11 +393,11 @@ class Mage_Catalog_Model_Product_Image extends Mage_Core_Model_Abstract
      * @return Mage_Catalog_Model_Product_Image
      */
     public function resize()
-    {                                        
+    {
         if (is_null($this->getWidth()) && is_null($this->getHeight())) {
-          return $this;
-        }                             
-        $this->getImageProcessor()->resize($this->_width, $this->_height);        
+            return $this;
+        }
+        $this->getImageProcessor()->resize($this->_width, $this->_height);
         return $this;
     }
 
@@ -486,9 +479,9 @@ class Mage_Catalog_Model_Product_Image extends Mage_Core_Model_Abstract
      * @return Mage_Catalog_Model_Product_Image
      */
     public function saveFile()
-    {                
-        $filename = $this->getNewFile();                        
-        $this->getImageProcessor()->save($filename);        
+    {
+        $filename = $this->getNewFile();
+        $this->getImageProcessor()->save($filename);
         Mage::helper('core/file_storage_database')->saveFile($filename);
         return $this;
     }
