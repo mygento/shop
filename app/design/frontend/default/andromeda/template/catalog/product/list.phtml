@@ -98,7 +98,9 @@
             <li class="item <?php if($k==4): ?> last<?php $k=0; endif; ?>">
 			<?php $_categories = $_product->getCategoryIds();
 				  $_category = Mage::getModel('catalog/category')->load($_categories[0]);
-				  $url = substr($this->getUrl($_category->getUrlPath()),0,-6).'/'.basename($_product->getProductUrl()); ?>
+				  //$url = substr($this->getUrl($_category->getUrlPath()),0,-6).'/'.basename($_product->getProductUrl());
+				  $url =$_product->getProductUrl();
+				   ?>
                 <p class="product-image">
                     <a href="<?php echo $url ?>" title="<?php echo $this->htmlEscape($this->getImageLabel($_product, 'small_image')) ?>">                        
                         <?// /*?>

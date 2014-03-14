@@ -30,8 +30,7 @@
                 jQuery('#checkout-shipping-method-load').css('display', 'none');
                 jQuery('#s_method_fastdelivery_free').attr('checked', 'checked');
                 shippingMethod.save();
-            });
-        </script>
+            });</script>
     <?php endif; ?>
 
     <script>
@@ -59,17 +58,20 @@
             jQuery('#shno').attr('checked', false);
             jQuery('#shyes').attr('checked', true);
             jQuery('#checkout-shipping-method-load ul li').css('display', 'none');
-            jQuery('.shipment-methods dt').css('display', 'block');
+            jQuery('#virt_text').css('display', 'block');
+            jQuery('.shipment-methods dt').css('display', 'block')
             jQuery("li[choose='normal']").css('display', 'block');
         });
         jQuery('.shno').click(function(event) {
             event.preventDefault();
             jQuery('#shyes').attr('checked', false);
             jQuery('#shno').attr('checked', true);
+            jQuery('#virt_text').css('display', 'block');
             jQuery('#checkout-shipping-method-load ul li').css('display', 'none');
             jQuery('.shipment-methods dt').css('display', 'block');
             jQuery("li[choose='free']").css('display', 'block');
         });
+        jQuery("label[for='s_method_virtrans_virtrans']").parent().parent().parent().before("<span id=\"virt_text\" class=\"cheese\"><?php echo Mage::getStoreConfig('carriers/virtrans/info'); ?></span>");
     </script>
 
 <?php endif; ?>

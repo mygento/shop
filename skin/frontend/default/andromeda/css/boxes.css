@@ -2247,3 +2247,4 @@ button.back { background:url(../images/btn_back.png) no-repeat 0 0; width: 87px;
     display: block;
     cursor:pointer;
 }
+#virt_text{display: none;margin-bottom: 7px;}
