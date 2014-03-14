@@ -31,5 +31,5 @@
 "Technical section","Техническая секция"
 "Add insurance","Добавить страховку товара"
 "Method Name","Нзвание метода"
-"Do not send calculation to event","Не делать расчет в основной модели"
+"Do not send calculation to event","Не делать расчет в основной моделе"
 "Send empty shipping/rate_result to event","Отправить пустой shipping/rate_result в ивент"
