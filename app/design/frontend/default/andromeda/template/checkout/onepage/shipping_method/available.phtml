@@ -53,8 +53,10 @@
                 }
             });
         });
+       
+
         jQuery('.shyes').click(function(event) {
-            event.preventDefault();
+            //event.preventDefault();
             jQuery('#shno').attr('checked', false);
             jQuery('#shyes').attr('checked', true);
             jQuery('#checkout-shipping-method-load ul li').css('display', 'none');
@@ -63,7 +65,7 @@
             jQuery("li[choose='normal']").css('display', 'block');
         });
         jQuery('.shno').click(function(event) {
-            event.preventDefault();
+            //event.preventDefault();
             jQuery('#shyes').attr('checked', false);
             jQuery('#shno').attr('checked', true);
             jQuery('#virt_text').css('display', 'block');
