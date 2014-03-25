@@ -2248,3 +2248,9 @@ button.back { background:url(../images/btn_back.png) no-repeat 0 0; width: 87px;
     cursor:pointer;
 }
 #virt_text{display: none;margin-bottom: 7px;}
+.vitranslabel{color: #999;
+    font-size: 12px;
+    font-weight: normal;
+    margin-left: 16px;
+    display: block;
+    cursor:pointer;}
