@@ -18,7 +18,7 @@ class Mygento_Virtrans_Adminhtml_VirtransController extends Mage_Adminhtml_Contr
     public function editAction() {
         $id=$this->getRequest()->getParam('id');
         $model=Mage::getModel('virtrans/virtrans')->load($id);
-        if ($model->getId()||$id==0) {
+        if ($model->getId() || $id == 0) {
             $data=Mage::getSingleton('adminhtml/session')->getFormData(true);
             if (!empty($data)) {
                 $model->setData($data);
@@ -42,7 +42,7 @@ class Mygento_Virtrans_Adminhtml_VirtransController extends Mage_Adminhtml_Contr
             $model->setData($data)->setId($this->getRequest()->getParam('id'));
             try {
                 $model->save();
-                Mage::getSingleton('adminhtml/session')->addSuccess(Mage::helper('virtrans')->__('Virtrans was successfully saved'));
+                Mage::getSingleton('adminhtml/session')->addSuccess(Mage::helper('virtrans')->__('Virtrans tariff was successfully saved'));
                 Mage::getSingleton('adminhtml/session')->setFormData(false);
                 if ($this->getRequest()->getParam('back')) {
                     $this->_redirect('*/*/edit',array('id'=>$model->getId()));
@@ -59,6 +59,29 @@ class Mygento_Virtrans_Adminhtml_VirtransController extends Mage_Adminhtml_Contr
         }
         Mage::getSingleton('adminhtml/session')->addError(Mage::helper('virtrans')->__('Unable to find Virtrans to save'));
         $this->_redirect('*/*/');
+    }
+
+    public function deleteAction() {
+        $id=$this->getRequest()->getParam('id');
+        $model=Mage::getModel('virtrans/virtrans')->load($id);
+        if ($model->getId() || $id == 0) {
+            try {
+                $model->delete();
+                Mage::getSingleton('adminhtml/session')->addSuccess(Mage::helper('virtrans')->__('Virtrans tariff was successfully deleted'));
+                Mage::getSingleton('adminhtml/session')->setFormData(false);
+                if ($this->getRequest()->getParam('back')) {
+                    $this->_redirect('*/*/edit',array('id'=>$model->getId()));
+                    return;
+                }
+                $this->_redirect('*/*/');
+                return;
+            } catch (Exception $e) {
+                Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
+                Mage::getSingleton('adminhtml/session')->setFormData($data);
+                $this->_redirect('*/*/edit',array('id'=>$this->getRequest()->getParam('id')));
+                return;
+            }
+        }
     }
 
 }
