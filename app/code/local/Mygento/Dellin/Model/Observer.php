@@ -5,10 +5,10 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
     public function calculate($request,$result,$request_array,$arrivalLabel,$code,$label,$todoors=false,$insurance=false) {
 
 
-        if ($insurance===true) {
-            $request_array['statedValue']=intval(Mage::getStoreConfig('carriers/dellin/insval'))*$request->getPackageValue()/100;
+        if ($insurance === true) {
+            $request_array['statedValue']=intval(Mage::getStoreConfig('carriers/dellin/insval')) * $request->getPackageValue() / 100;
         }
-        if ($todoors===true) {
+        if ($todoors === true) {
             $request_array['arrivalDoor']='1';
         } else {
             $request_array['arrivalDoor']='0';
@@ -37,7 +37,7 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
         $method->setCarrier('dellin');
         $method->setCarrierTitle(Mage::getStoreConfig('carriers/dellin/title'));
         $method->setMethod($code);
-        $method->setMethodTitle(Mage::getStoreConfig('carriers/dellin/name').' '.$arrivalLabel.' '.$label);
+        $method->setMethodTitle($label);
         $method->setPrice($price);
         $method->setCost($price);
         $result->append($method);
@@ -49,7 +49,7 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
         $method->setCarrierTitle(Mage::getStoreConfig('carriers/dellin/title'));
         $price=0;
         $method->setMethod($code.'_free');
-        $method->setMethodTitle(Mage::getStoreConfig('carriers/dellin/name').' '.$arrivalLabel.' '.$label);
+        $method->setMethodTitle($label);
         $method->setPrice($price);
         $method->setCost($price);
         $result->append($method);
@@ -62,8 +62,8 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
         $request=$observer->getRequest();
         $model=Mage::getModel('dellin/dellin');
 
-        $arrival_data=$model->findRecieverId(mb_strtoupper(mb_substr($request->getDestCity(),0,1,'UTF-8'),'UTF-8').mb_substr($request->getDestCity(),1,strlen($request->getDestCity())-1,'UTF-8'));
-        if ($arrival_data===false) {
+        $arrival_data=$model->findRecieverId(mb_strtoupper(mb_substr($request->getDestCity(),0,1,'UTF-8'),'UTF-8').mb_substr($request->getDestCity(),1,strlen($request->getDestCity()) - 1,'UTF-8'));
+        if ($arrival_data === false) {
             return false;
         }
         $arrivalLabel=$arrival_data['arrivalLabel'];
@@ -71,7 +71,7 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
 
         $derivalPoint=$model->findSenderId();
 
-        if (strlen($arrivalPoint)<=1&&strlen($derivalPoint)<=1) {
+        if (strlen($arrivalPoint) <= 1 && strlen($derivalPoint) <= 1) {
             Mage::helper('dellin')->AddLog('Empty derival and arrival codes');
             return false;
         }
