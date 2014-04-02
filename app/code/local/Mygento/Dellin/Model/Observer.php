@@ -83,7 +83,7 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
         $request_array['sizedWeight']=$observer->getWeight();
         $request_array['sizedVolume']=$observer->getVolume();
         $request_array['derivalDoor']='1';
-        $request_array['packages']=$this->getConfigData('packaging');
+        $request_array['packages']=Mage::getStoreConfig('carriers/dellin/packaging');
 
 
         $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'1','Доставка до двери, со страховкой',true,true);
