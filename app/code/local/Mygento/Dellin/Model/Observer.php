@@ -86,10 +86,10 @@ class Mygento_Dellin_Model_Observer extends Varien_Object {
         $request_array['packages']=Mage::getStoreConfig('carriers/dellin/packaging');
 
 
-        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'1','Доставка до двери, со страховкой',true,true);
-        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'2','Доставка до двери, без страховки',true,false);
-        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'3','Со страховкой',false,true);
-        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'4','Без страховки',false,false);
+        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'1','доставка до двери, со страховкой',true,true);
+        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'2','доставка до двери, без страховки',true,false);
+        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'3','со страховкой',false,true);
+        $result=$this->calculate($request,$result,$request_array,$arrivalLabel,'4','без страховки',false,false);
 
 
 

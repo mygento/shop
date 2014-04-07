@@ -13,7 +13,7 @@
                             <?php else: ?>
                                 <input name="shipping_method" type="radio" value="<?php echo $_rate->getCode() ?>" id="s_method_<?php echo $_rate->getCode() ?>"<?php if ($_rate->getCode() === $this->getAddressShippingMethod()) echo ' checked="checked"' ?> />
                                 <label for="s_method_<?php echo $_rate->getCode() ?>">                          
-                                    <?= (($_rate->getPrice() > 0) ? $_rate->getPrice().'руб. ' : '') ?><b><?= $_rate->getMethodTitle() ?></b>
+                                    <?= (($_rate->getPrice() > 0) ? str_replace('.',',',$_rate->getPrice()).' руб. ' : '') ?><b><?= $_rate->getMethodTitle() ?></b>
                                     
 
                                 </label>

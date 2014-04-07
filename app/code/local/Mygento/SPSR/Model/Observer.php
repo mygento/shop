@@ -26,7 +26,7 @@ class Mygento_Spsr_Model_Observer extends Varien_Object {
             if ($daysall[0] == $daysall[1]) {
                 $days=$daysall[0].' '.Mage::helper('spsr')->getNumEnding($daysall[0]);
             } else {
-                $days=$daysall[0].'-'.$daysall[1].' '.Mage::helper('spsr')->getNumEnding($daysall[1]);
+                $days=$daysall[0].'—'.$daysall[1].' '.Mage::helper('spsr')->getNumEnding($daysall[1]);
             }
             $method->setFromDate($daysall[0]);
             $method->setToDate($daysall[1]);
@@ -34,7 +34,7 @@ class Mygento_Spsr_Model_Observer extends Varien_Object {
 
             $price=0;
 
-            $method->setMethodTitle(str_replace('Услуги по доставке','',$tariff->TariffType).', '.$days);
+            $method->setMethodTitle(str_replace('Услуги по доставке','',str_replace('"','',$tariff->TariffType)).', '.$days);
             $method->setPrice($price);
             $method->setCost($price);
             $result->append($method);
@@ -50,7 +50,7 @@ class Mygento_Spsr_Model_Observer extends Varien_Object {
             if ($daysall[0] == $daysall[1]) {
                 $days=$daysall[0].' '.Mage::helper('spsr')->getNumEnding($daysall[0]);
             } else {
-                $days=$daysall[0].'-'.$daysall[1].' '.Mage::helper('spsr')->getNumEnding($daysall[1]);
+                $days=$daysall[0].'—'.$daysall[1].' '.Mage::helper('spsr')->getNumEnding($daysall[1]);
             }
             $method->setFromDate($daysall[0]);
             $method->setToDate($daysall[1]);
@@ -60,7 +60,7 @@ class Mygento_Spsr_Model_Observer extends Varien_Object {
             $price=round($price * Mage::getStoreConfig('carriers/spsr/pricecoef'),2);
             $price=round($price / Mage::app()->getStore()->getCurrentCurrencyRate(),1);
 
-            $method->setMethodTitle(str_replace('Услуги по доставке','',$tariff->TariffType).', '.$days);
+            $method->setMethodTitle(str_replace('Услуги по доставке','',str_replace('"','',$tariff->TariffType)).', '.$days);
             $method->setPrice($price);
             $method->setCost($price);
             $result->append($method);
