@@ -145,7 +145,7 @@ p.required { font-size:.95em; text-align:right; }
 
 
 /********************** Messages  */
-.success { color:#3d6611; }
+.success { color:#e64d22; }
 .error { color:#df280a; }
 .notice {color:#e26703; }
 .success, .error { font-weight:bold; }
@@ -170,13 +170,13 @@ p.required { font-size:.95em; text-align:right; }
 }
 .success-msg {
     border-color:#446423;
-    color:#3d6611;
+    color:#e64d22;
     background-color:#eff5ea;
     background-image:url(../images/success_msg_icon.gif);
 }
 .notice-msg, .note-msg {
     border-color:#fcd344;
-    color:#3d6611;
+    color:#e64d22;
     background-color:#fafaec;
     background-image:url(../images/note_msg_icon.gif);
 }
@@ -2247,10 +2247,4 @@ button.back { background:url(../images/btn_back.png) no-repeat 0 0; width: 87px;
     display: block;
     cursor:pointer;
 }
-#virt_text{display: none;margin-bottom: 7px;}
-.vitranslabel{color: #999;
-    font-size: 12px;
-    font-weight: normal;
-    margin-left: 16px;
-    display: block;
-    cursor:pointer;}
+#virt_text{display: none;margin-bottom: 7px;margin-top:-5px;}
