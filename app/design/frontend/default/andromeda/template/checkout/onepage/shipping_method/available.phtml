@@ -2,11 +2,36 @@
     <strong><?php echo $this->__('Sorry, no quotes are available for this order at this time.') ?></strong>
 <?php else: ?>
     <dl class="shipment-methods">
-        <?php foreach ($_shippingRateGroups as $code=> $_rates): ?>
-            <dt><?php echo $this->getCarrierName($code) ?></dt>
+        <?php foreach ($_shippingRateGroups as $code => $_rates): ?>
+            <?php
+            $href='#';
+            $text='';
+            if ($code == 'virtrans') {
+                $href='http://virtrans.ru/';
+                $text=Mage::getStoreConfig('carriers/virtrans/info');
+            }
+            if ($code == 'spsr') {
+                $href='http://www.spsr.ru/';
+                $text=Mage::getStoreConfig('carriers/spsr/info');
+            }
+            if ($code == 'dellin') {
+                $href='http://spb.dellin.ru/';
+                $text=Mage::getStoreConfig('carriers/dellin/info');
+            }
+            ?>
+            <dt>
+            <a href="<?php echo $href; ?>" target="_blank"><?php echo $this->getCarrierName($code) ?></a>
+            <?php
+            if ($code == 'spsr') {
+                echo '<a rel="fancybox-button" class="fancybox-button" id="fancybox-spsr">подробнее о способах доставки</a>';
+            }
+            ?>
+            <span id="<?php echo $code; ?>_text" class="cheese"><?php echo $text; ?></span>
+
+            </dt>
             <dd>
                 <ul>
-                    <?php foreach ($_rates as $rateKey=> $_rate): ?>
+                    <?php foreach ($_rates as $rateKey => $_rate): ?>
                         <li>
                             <?php if ($_rate->getErrorMessage()): ?>
                                 <ul class="messages"><li class="error-msg"><ul><li><?php echo $_rate->getErrorMessage() ?></li></ul></li></ul>
@@ -14,8 +39,6 @@
                                 <input name="shipping_method" type="radio" value="<?php echo $_rate->getCode() ?>" id="s_method_<?php echo $_rate->getCode() ?>"<?php if ($_rate->getCode() === $this->getAddressShippingMethod()) echo ' checked="checked"' ?> />
                                 <label for="s_method_<?php echo $_rate->getCode() ?>">                          
                                     <?= (($_rate->getPrice() > 0) ? str_replace('.',',',$_rate->getPrice()).' руб. ' : '') ?><b><?= $_rate->getMethodTitle() ?></b>
-                                    
-
                                 </label>
                             <?php endif ?>
                         </li>
@@ -30,20 +53,26 @@
                 jQuery('#checkout-shipping-method-load').css('display', 'none');
                 jQuery('#s_method_fastdelivery_free').attr('checked', 'checked');
                 shippingMethod.save();
-            });</script>
+            });
+        </script>
     <?php endif; ?>
-
     <script>
         function strpos(haystack, needle, offset) {
             var i = (haystack + '').indexOf(needle, (offset || 0));
             return i === -1 ? false : i;
         }
         jQuery(function() {
+            //add fancy
+            jQuery(".fancybox-button").fancybox({
+                'scrolling': 'no',
+                'showCloseButton': true,
+                'content': '<?php echo str_replace("\r\n",'',$this->getLayout()->createBlock('cms/block')->setBlockId('spsrfancy')->toHtml()); ?>',
+            });
+            //rest
             jQuery('#checkout-shipping-method-load').css('display', 'block');
-            jQuery('#checkout-shipping-method-load').prepend('<input id="shyes" class="shyes" type="radio" name="sheep" value="Yes"><p class="choose shyes">Выбрать способ и стоимость доставки</p><span class="cheese">Стоимость доставки будет включена в счет</span><br/><input id="shno" type="radio" name="sheep" class="shno" svalue="No"><p class="choose shno">Выбрать транспортную компанию</p><span class="cheese">Стоимость доставки не будет включена в счет. Вы оплачиваете доставку самостоятельно транспортной компании</span>');
+            jQuery('#checkout-shipping-method-load').prepend('<h3>Включить стоимость доставки в ваш заказ?</h3><input id="shyes" class="shyes" type="radio" name="sheep" value="Yes"><p class="choose shyes">Да, рассчитать стоимость.</p><input id="shno" type="radio" name="sheep" class="shno" svalue="No"><p class="choose shno">Нет, я заплачу транспортной компании за доставку самостоятельно.</p>');
             jQuery('#checkout-shipping-method-load ul li').css('display', 'none');
             jQuery('.shipment-methods dt').css('display', 'none');
-            //jQuery('#checkout-shipping-method-load dt').css('display', 'none');
             jQuery('#checkout-shipping-method-load ul li').each(function() {
                 if (strpos(jQuery(this).find('input').attr('value'), 'free') > 0) {
                     jQuery(this).attr('choose', 'free');
@@ -53,27 +82,25 @@
                 }
             });
         });
-       
-
         jQuery('.shyes').click(function(event) {
-            //event.preventDefault();
             jQuery('#shno').attr('checked', false);
             jQuery('#shyes').attr('checked', true);
             jQuery('#checkout-shipping-method-load ul li').css('display', 'none');
-            jQuery('#virt_text').css('display', 'block');
-            jQuery('.shipment-methods dt').css('display', 'block')
+            jQuery('#virtrans_text').css('display', 'block');
+            jQuery('#spsr_text').css('display', 'block');
+            jQuery('#dellin_text').css('display', 'block');
+            jQuery('.shipment-methods dt').css('display', 'block');
             jQuery("li[choose='normal']").css('display', 'block');
         });
         jQuery('.shno').click(function(event) {
-            //event.preventDefault();
             jQuery('#shyes').attr('checked', false);
             jQuery('#shno').attr('checked', true);
-            jQuery('#virt_text').css('display', 'block');
+            jQuery('#virtrans_text').css('display', 'block');
+            jQuery('#spsr_text').css('display', 'block');
+            jQuery('#dellin_text').css('display', 'block');
             jQuery('#checkout-shipping-method-load ul li').css('display', 'none');
             jQuery('.shipment-methods dt').css('display', 'block');
             jQuery("li[choose='free']").css('display', 'block');
         });
-        jQuery("label[for='s_method_virtrans_virtrans']").parent().parent().parent().before("<span id=\"virt_text\" class=\"cheese\"><?php echo Mage::getStoreConfig('carriers/virtrans/info'); ?></span>");
     </script>
-
 <?php endif; ?>

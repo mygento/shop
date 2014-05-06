@@ -2233,10 +2233,10 @@ button.back { background:url(../images/btn_back.png) no-repeat 0 0; width: 87px;
 /* >>> ITEAMO . CORRECTION  */
 #shno,#shyes{float:left;margin-top:4px;}
 .choose{
-    color: #000000;
+    color: #666666;
     margin-left: 20px;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 13px;
+    font-weight: 900;
     cursor:pointer;
 }
 .cheese{
@@ -2247,4 +2247,10 @@ button.back { background:url(../images/btn_back.png) no-repeat 0 0; width: 87px;
     display: block;
     cursor:pointer;
 }
-#virt_text{display: none;margin-bottom: 7px;margin-top:-5px;}
+#virtrans_text,#spsr_text,#dellin_text{display: none;margin-bottom: 7px;margin-top:10px;}
+#fancybox-spsr{float: right;
+    font-size: 11px;
+    margin-right: 250px;
+color:#000;cursor: pointer;text-decoration: underline;}
+.shipment-methods a{color:#0099CC;}
+#checkout-shipping-method-load h3{font-size:14px;}
