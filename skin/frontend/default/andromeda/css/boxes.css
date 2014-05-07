@@ -2254,3 +2254,4 @@ button.back { background:url(../images/btn_back.png) no-repeat 0 0; width: 87px;
 color:#000;cursor: pointer;text-decoration: underline;}
 .shipment-methods a{color:#0099CC;}
 #checkout-shipping-method-load h3{font-size:14px;}
+.fancybox-inner ul li{text-align: left;list-style: decimal inside none;}
